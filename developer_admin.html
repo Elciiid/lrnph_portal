@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CentralPoint - Comprehensive Admin Developer Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-family: monospace; white-space: pre; }
+        .sidebar-link { display: block; padding: 0.5rem 1rem; color: #4b5563; border-radius: 0.375rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #f3f4f6; color: #111827; }
+        section { scroll-margin-top: 5rem; }
+        .tech-pill { @apply px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600 border border-gray-200; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- Navigation/Header -->
+<header class="bg-white shadow-sm fixed top-0 w-full z-10 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                Admin Developer Guide
+            </h1>
+            <div class="flex gap-4 text-sm font-medium">
+                <span class="text-gray-400">Master Guide v2.0</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 flex flex-col md:flex-row gap-8 pb-12">
+    <!-- Sidebar -->
+    <aside class="w-full md:w-64 flex-shrink-0">
+        <nav class="sticky top-24 space-y-1 bg-white p-4 rounded-lg shadow-sm border border-gray-100 overflow-y-auto max-h-[80vh] custom-scrollbar">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Core</h3>
+            <a href="#tech-stack" class="sidebar-link">1. Technical Stack</a>
+            <a href="#auth-flow" class="sidebar-link">2. Authentication Flow</a>
+            <a href="#routing" class="sidebar-link">3. Routing & Permissions</a>
+            
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-3 px-4">Features</h3>
+            <a href="#chatnow" class="sidebar-link">4. ChatNow (Messaging)</a>
+            <a href="#planner" class="sidebar-link">5. Planner (Meetings)</a>
+            <a href="#emeals" class="sidebar-link">6. E-Meals System</a>
+            <a href="#announcements" class="sidebar-link">7. Content Manager</a>
+
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-3 px-4">Reference</h3>
+            <a href="#schema" class="sidebar-link">8. Database Directory</a>
+            <a href="#tasks" class="sidebar-link">9. Developer Tasks</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+        
+        <!-- Technical Stack -->
+        <section id="tech-stack" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">1. Technical Stack</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 border border-indigo-100 rounded-xl bg-indigo-50/30">
+                    <h4 class="font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-server"></i> Backend & Database
+                    </h4>
+                    <ul class="text-sm space-y-2 text-indigo-800">
+                        <li><strong>PHP 7.4+</strong> (Native implementation)</li>
+                        <li><strong>MSSQL Server</strong> (Local & Remote contexts)</li>
+                        <li><strong>sqlsrv Driver</strong> (Required in php.ini)</li>
+                    </ul>
+                </div>
+                <div class="p-6 border border-emerald-100 rounded-xl bg-emerald-50/30">
+                    <h4 class="font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-code"></i> Frontend
+                    </h4>
+                    <ul class="text-sm space-y-2 text-emerald-800">
+                        <li><strong>Tailwind CSS</strong> (CDN for utilities)</li>
+                        <li><strong>Vanilla JavaScript</strong> (ES6+)</li>
+                        <li><strong>Mermaid.js</strong> (Documentation diagrams)</li>
+                        <li><strong>Three.js</strong> (Headline effects)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Auth Flow -->
+        <section id="auth-flow" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">2. Authentication Flow</h2>
+            <p class="mb-6 text-gray-600">CentralPoint uses a session-based authentication system linked to the company master list.</p>
+            <div class="bg-gray-50/50 p-6 rounded-xl flex justify-center border border-gray-100">
+                <pre class="mermaid">
+                    sequenceDiagram
+                        participant User
+                        participant Login as login.php
+                        participant DB as MSSQL (LRNPH_E)
+                        
+                        User->>Login: Username + Password
+                        Login->>DB: Verify BiometricsID & Password Hash
+                        DB-->>Login: User Records (ID, Dept, Name)
+
+                        alt Success
+                            Login->>Login: Start Session & Set $_SESSION
+                            Login-->>User: Redirect to index.php
+                        else Failure
+                            Login-->>User: Show Auth Error
+                        end
+                </pre>
+            </div>
+        </section>
+
+        <!-- Routing & Permissions -->
+        <section id="routing" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">3. Routing & Permissions</h2>
+            
+            <h3 class="text-lg font-bold mb-3 text-gray-800">Admin Routing</h3>
+            <p class="text-sm text-gray-600 mb-4">The admin panel (<code>admin.php</code>) handles navigation through includes based on the <code>page</code> parameter.</p>
+            <div class="code-block text-xs mb-8">
+$page = $_GET['page'] ?? 'dashboard';
+include 'components/' . $page . '.php'; // Simplified logic
+            </div>
+
+            <h3 class="text-lg font-bold mb-3 text-gray-800">Modular Permission System</h3>
+            <p class="text-sm text-gray-600 mb-4">Permissions are managed dynamically in the <code>portal_user_access</code> table.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 border border-gray-100 rounded-lg">
+                    <h5 class="font-bold text-xs uppercase text-gray-500 mb-2">Common Apps</h5>
+                    <p class="text-xs">Base key only: <code>tickethub</code>, <code>planner</code>.</p>
+                </div>
+                <div class="p-4 border border-gray-100 rounded-lg">
+                    <h5 class="font-bold text-xs uppercase text-gray-500 mb-2">Module-Specific</h5>
+                    <p class="text-xs">Suffixed key: <code>tickethub__it</code>, <code>tickethub__hr</code>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ChatNow -->
+        <section id="chatnow" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">4. ChatNow (Messaging)</h2>
+            <p class="mb-4 text-gray-600 leading-relaxed">A real-time messaging component capable of DMs, Group Chats, and "Stories/Notes" functionality.</p>
+            
+            <div class="bg-gray-50 p-4 rounded-xl border-l-4 border-indigo-500 mb-6 font-mono text-xs">
+                <strong>Database Context:</strong> LRNPH_ITmanagement (Remote: 10.2.0.9)
+            </div>
+
+            <h3 class="text-xl font-semibold mb-3 text-gray-800">Key Features:</h3>
+            <ul class="list-disc pl-6 space-y-3 text-gray-600 text-sm">
+                <li><strong>Stories/Notes:</strong> 24-hour temporary status updates with reaction support (<code>UserNotes</code>).</li>
+                <li><strong>Unified Search:</strong> Searches both individual users and group participants via <code>STRING_AGG</code>.</li>
+                <li><strong>Rich APIs:</strong> <code>chatnow_api.php</code> handles async message sending, story reactions, and read status updates.</li>
+            </ul>
+        </section>
+
+        <!-- Planner -->
+        <section id="planner" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">5. Planner (Meetings)</h2>
+            <p class="mb-4 text-gray-600">A full-featured meeting management system (<code>planner.php</code>).</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="p-4 bg-gray-50 rounded-lg text-center">
+                    <i class="fa-solid fa-calendar-check text-pink-500 mb-2"></i>
+                    <h5 class="font-bold text-xs uppercase">Scheduling</h5>
+                    <p class="text-[10px] text-gray-500">Venue conflict detection & auto-timing.</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg text-center">
+                    <i class="fa-solid fa-users-gear text-pink-500 mb-2"></i>
+                    <h5 class="font-bold text-xs uppercase">Attendees</h5>
+                    <p class="text-[10px] text-gray-500">Employee groups & manual guest entries.</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg text-center">
+                    <i class="fa-solid fa-bell text-pink-500 mb-2"></i>
+                    <h5 class="font-bold text-xs uppercase">Notif</h5>
+                    <p class="text-[10px] text-gray-500">Real-time meeting popups for invitees.</p>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold mb-2 text-gray-800">Processing Logic:</h3>
+            <p class="text-sm text-gray-600 mb-4">Uses <code>add_schedule.php</code> for complex multi-table inserts (Schedule + Attendees Junction).</p>
+        </section>
+
+        <!-- E-Meals System -->
+        <section id="emeals" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">6. E-Meals System</h2>
+            <p class="mb-4 text-gray-600 leading-relaxed">Internal meal management and settings for employee dining services.</p>
+            <div class="code-block text-xs">
+components/emeals.php         # User view
+components/emeals_settings.php # Configuration (Meal types, quotas)
+            </div>
+        </section>
+
+        <!-- Content Manager -->
+        <section id="announcements" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">7. Content Manager</h2>
+            <p class="mb-4 text-gray-600">Manages the news ecosystem of the portal.</p>
+            <table class="min-w-full divide-y divide-gray-200 text-sm border">
+                <thead class="bg-gray-50 font-bold">
+                    <tr><th class="px-4 py-2 text-left">Type</th><th class="px-4 py-2 text-left">Display Area</th></tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr><td class="px-4 py-2"><code>headline</code></td><td class="px-4 py-2">Large Banner (Center Column) with Three.js</td></tr>
+                    <tr><td class="px-4 py-2"><code>announcement</code></td><td class="px-4 py-2">Sidebar List (Right Column)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Database Schema -->
+        <section id="schema" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">8. Database Directory</h2>
+            
+            <h4 class="font-bold text-gray-800 mb-3 mt-6">Portal Infrastructure (LRNPH_E)</h4>
+            <div class="overflow-x-auto border rounded-xl mb-8">
+                <table class="min-w-full divide-y divide-gray-200 text-xs">
+                    <thead class="bg-gray-50 font-bold uppercase text-gray-500">
+                        <tr><th class="px-4 py-3 text-left">Table</th><th class="px-4 py-3 text-left">Purpose</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-gray-600">
+                        <tr><td class="px-4 py-3 font-bold">portal_announcements</td><td>News content & banner images</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">portal_AppModules</td><td>Main application registry</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">portal_Modules</td><td>Sidebar grouping definitions</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">portal_user_access</td><td>User permission mappings</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">portal_schedule</td><td>Meeting event definitions</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">portal_meeting_attendees</td><td>Junction for meeting invites</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4 class="font-bold text-gray-800 mb-3">Messaging System (LRNPH_ITmanagement)</h4>
+            <div class="overflow-x-auto border rounded-xl">
+                <table class="min-w-full divide-y divide-gray-200 text-xs text-gray-600">
+                    <thead class="bg-gray-50 font-bold uppercase text-gray-500">
+                        <tr><th class="px-4 py-3 text-left">Table</th><th class="px-4 py-3 text-left">Purpose</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr><td class="px-4 py-3 font-bold">dbo.Messages</td><td>DM and Group chat history</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">dbo.Conversations</td><td>Group chat definitions</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">dbo.ConversationParticipants</td><td>Group membership manifest</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">dbo.UserNotes</td><td>Temporary story posts (24h)</td></tr>
+                        <tr><td class="px-4 py-3 font-bold">dbo.StoryViews</td><td>Viewer tracking & reactions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tasks -->
+        <section id="tasks" class="mb-4">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">9. Developer Tasks</h2>
+            
+            <h4 class="font-bold text-gray-800 mb-2 mt-4">How to Add a New Admin Feature</h4>
+            <ol class="list-decimal pl-6 space-y-2 text-sm text-gray-600">
+                <li>Create <code>components/new_feature.php</code>.</li>
+                <li>Add a case in <code>admin.php</code> to include the new file.</li>
+                <li>Add the feature to <code>portal_AppModules</code> via the <strong>System Settings</strong> UI.</li>
+                <li>Assign permissions in <strong>User Management</strong>.</li>
+            </ol>
+
+            <div class="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg text-xs text-yellow-800">
+                <strong>Important:</strong> Always use <code>sqlsrv_prepare</code> or <code>sqlsrv_query</code> with parameters for external user inputs to prevent SQL injection.
+            </div>
+        </section>
+
+    </main>
+</div>
+
+</body>
+</html>

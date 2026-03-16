@@ -1,0 +1,1048 @@
+:root {
+    --primary-color: #007bff;
+    --primary-gradient: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+    --secondary-color: #6c757d;
+    --background-color: #f4f7fa;
+    --sidebar-width: 260px;
+    --header-height: 70px;
+    --card-bg: #ffffff;
+    --text-primary: #1a1a1a;
+    --text-secondary: #888888;
+    --border-radius: 20px;
+    /* Slightly more rounded as per image */
+    --border-radius-sm: 12px;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+    /* Softer, deeper shadow */
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --font-family: 'Plus Jakarta Sans', sans-serif;
+    --input-bg: #f8f9fa;
+    --border-color: #eeeeee;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    display: flex;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* ===========================
+   Sidebar Styling 
+   =========================== */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--card-bg);
+    padding: 20px;
+    height: calc(100vh - 24px);
+    position: fixed;
+    left: 12px;
+    top: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    overflow-y: auto;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    border-right: none;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: var(--primary-color);
+    padding-left: 8px;
+}
+
+.logo span {
+    color: var(--text-primary);
+}
+
+/* Sidebar: Workspace Selector / Search */
+.workspace-container {
+    padding-bottom: 20px;
+}
+
+.sidebar-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background-color: var(--input-bg);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 32px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+}
+
+.sidebar-search-wrapper:hover,
+.sidebar-search-wrapper:focus-within {
+    border-color: #ddd;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.sidebar-search-input::placeholder {
+    color: #bbb;
+}
+
+.search-cmd-shortcut {
+    font-size: 0.7rem;
+    color: #ccc;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* Sidebar: Navigation */
+.menu-section {
+    margin-bottom: 32px;
+}
+
+.menu-label {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-bottom: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding-left: 12px;
+}
+
+.nav-menu {
+    list-style: none;
+}
+
+.nav-item {
+    margin-bottom: 4px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background-color: #eef5ff;
+    color: var(--primary-color);
+}
+
+/* Sidebar: Upgrade Card */
+.sidebar-footer {
+    margin-top: auto;
+}
+
+/* Bottom Sidebar Logo */
+.sidebar-logo-bottom {
+    max-width: 150px;
+    height: auto;
+    opacity: 0.9;
+    display: block;
+    margin: 0 auto;
+    transition: opacity 0.2s;
+}
+
+.sidebar-logo-bottom:hover {
+    opacity: 1;
+}
+
+/* ===========================
+   Main Content Area
+   =========================== */
+.main-content {
+    margin-left: calc(var(--sidebar-width) + 24px);
+    flex: 1;
+    padding: 20px 28px 20px 28px;
+    /* Reduced top padding */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.top-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    /* Reduced bottom margin */
+}
+
+.page-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.header-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.icon-btn {
+    background: white;
+    border: 1px solid #f0f0f0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    position: relative;
+}
+
+.icon-btn:hover {
+    background: #f8f9fa;
+    color: var(--primary-color);
+}
+
+.notification-dot {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 8px;
+    height: 8px;
+    background: #FF4D4D;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.user-profile-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 4px 12px 4px 4px;
+    border-radius: 30px;
+    transition: background 0.2s;
+}
+
+.user-profile-container:hover {
+    background: #fff;
+}
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-info {
+    text-align: left;
+}
+
+.user-info h5 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.user-info p {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Dashboard Grid Layout */
+.dashboard-grid-container {
+    display: grid;
+    grid-template-columns: 2.3fr 1.1fr;
+    /* Adjusted ratio to match image better */
+    gap: 20px;
+}
+
+.left-column-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 20px;
+    height: 100%;
+}
+
+/* Welcome Section */
+.welcome-section-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 12px;
+}
+
+.welcome-text h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    /* Slightly thinner than 700 looks more premium */
+    margin-bottom: 8px;
+    color: #2c2c2c;
+}
+
+.welcome-text p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.btn-export {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+}
+
+.btn-export:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Stats Cards */
+.stats-row-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.stat-card-container {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.stat-menu-btn {
+    border: none;
+    background: transparent;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.stat-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.stat-change {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.change-up {
+    color: var(--success-color);
+}
+
+.change-down {
+    color: var(--danger-color);
+}
+
+.stat-period {
+    color: var(--text-secondary);
+}
+
+/* Chart Section */
+.chart-container-wrapper {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.chart-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.chart-title-group h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.chart-big-number {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 0px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.chart-big-number span {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.chart-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-profile-visit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Specific styling for the visual chart area */
+.chart-visual-area {
+    display: flex;
+    height: 150px;
+    gap: 20px;
+}
+
+.y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    color: #bbb;
+    font-size: 0.75rem;
+    padding-bottom: 24px;
+    /* Align with dates */
+}
+
+.chart-bars-container {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 100%;
+    padding-bottom: 0;
+    position: relative;
+}
+
+/* Dotted grid lines (optional visual aid) */
+.chart-grid-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 24px;
+    /* leave space for labels */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.grid-line {
+    width: 100%;
+    border-top: 1px dashed #f0f0f0;
+    height: 0;
+}
+
+.bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+    z-index: 1;
+}
+
+.bar {
+    width: 45px;
+    background-color: var(--background-color);
+    border-radius: 8px 8px 8px 8px;
+    /* Slightly rounded bottom too */
+    transition: height 0.5s ease;
+    position: relative;
+}
+
+.bar.active {
+    background: var(--primary-gradient);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Tooltip implementation */
+.chart-tooltip {
+    position: absolute;
+    bottom: 110%;
+    /* Place above bar */
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    min-width: 140px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+/* Show tooltip on specific class or hover */
+.bar-wrapper.has-tooltip .chart-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tooltip-date {
+    color: #888;
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.tooltip-row {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tooltip-row::before {
+    content: '';
+    width: 3px;
+    height: 12px;
+    border-radius: 2px;
+    display: block;
+}
+
+.tooltip-reach::before {
+    background: #007bff;
+}
+
+.tooltip-interactions::before {
+    background: #333;
+}
+
+.bar-date-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Content List / Table */
+.content-list-container {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.content-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.content-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.table-container {
+    width: 100%;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+    /* Row spacing */
+}
+
+.styled-table th {
+    text-align: left;
+    color: #aaa;
+    font-weight: 500;
+    font-size: 0.85rem;
+    padding: 0 10px 10px 10px;
+}
+
+.styled-table td {
+    padding: 10px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.styled-table tr {
+    transition: background 0.2s;
+}
+
+.styled-table tr:hover td {
+    background-color: #fcfcfc;
+}
+
+.post-media-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.post-thumbnail {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: #eee;
+    object-fit: cover;
+}
+
+.post-title h6 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--text-primary);
+}
+
+.post-title span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* ===========================
+   Right Column (Calendar & Schedule)
+   =========================== */
+.right-column-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 20px;
+    height: 100%;
+}
+
+/* Calendar Widget */
+.calendar-widget-container {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.cal-nav-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.cal-month-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.calendar-grid-wrapper {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+}
+
+.cal-header-cell {
+    color: #aaa;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+}
+
+.cal-date-cell {
+    padding: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    height: 30px;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 0.8rem;
+}
+
+.cal-date-cell:hover {
+    background-color: #f0f0f0;
+}
+
+.cal-date-cell.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+}
+
+.cal-date-cell.muted {
+    color: #e0e0e0;
+}
+
+/* Calendar Controls Footer */
+.calendar-controls-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-top: 1px solid #f8f9fa;
+    padding-top: 20px;
+}
+
+.cal-input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.input-select-wrapper {
+    flex: 1;
+    background: var(--input-bg);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.input-date-wrapper {
+    flex: 1;
+    background: var(--input-bg);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.cal-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.date-range-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--input-bg);
+    padding: 10px 16px;
+    border-radius: 20px;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.btn-reset {
+    background: transparent;
+    border: none;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0 8px;
+}
+
+.btn-update {
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Schedule Widget */
+.schedule-widget-container {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.schedule-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.btn-add-schedule {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.schedule-item-container {
+    display: flex;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.schedule-item-container:last-child {
+    border-bottom: none;
+}
+
+.schedule-image {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: #ccc;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.schedule-info {
+    flex: 1;
+}
+
+.schedule-meta-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.schedule-platform {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.schedule-time {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.schedule-account {
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-bottom: 6px;
+}
+
+.schedule-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.schedule-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.btn-view-all {
+    width: 100%;
+    background: #1a1a1a;
+    color: white;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s;
+}
+
+.btn-view-all:hover {
+    background: #333;
+}
+
+/* ===========================
+   Traffic Sources Widget
+   =========================== */
+.traffic-sources-container {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.traffic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.traffic-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.traffic-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.traffic-value {
+    font-weight: 600;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: #f1f3f5;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.section-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-header-compact h3 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.icon-btn-plain {
+    border: none;
+    background: transparent;
+    color: #aeaeae;
+    cursor: pointer;
+    font-size: 1rem;
+}

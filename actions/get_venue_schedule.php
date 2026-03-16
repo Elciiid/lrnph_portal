@@ -1,0 +1,63 @@
+<?php
+// actions/get_venue_schedule.php
+require_once '../includes/db.php';
+session_start();
+
+header('Content-Type: application/json');
+
+if (!isset($_SESSION['username'])) {
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
+
+$date = $_GET['date'] ?? date('Y-m-d');
+
+if (isset($conn)) {
+    // 1. Get all active venues
+    $venues = [];
+    $vSql = "SELECT venue_name FROM LRNPH_OJT.db_datareader.AP_Venues WHERE is_active = 1 ORDER BY venue_name ASC";
+    $vStmt = sqlsrv_query($conn, $vSql);
+    if ($vStmt) {
+        while ($vRow = sqlsrv_fetch_array($vStmt, SQLSRV_FETCH_ASSOC)) {
+            $venues[$vRow['venue_name']] = [];
+        }
+    }
+
+    // 2. Get all meetings for this date
+    $mSql = "SELECT meeting_name, venue, start_time, end_time, facilitator,
+                ml.FirstName, ml.LastName
+             FROM LRNPH_OJT.db_datareader.AP_Meetings ps
+             LEFT JOIN LRNPH_E.dbo.lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
+             WHERE meeting_date = ? AND venue IS NOT NULL AND venue != 'Online'
+             ORDER BY start_time ASC";
+
+    $mStmt = sqlsrv_query($conn, $mSql, [$date]);
+    if ($mStmt) {
+        while ($row = sqlsrv_fetch_array($mStmt, SQLSRV_FETCH_ASSOC)) {
+            $v = $row['venue'];
+            // If venue exists in our list (even if custom, but usually we filter by known venues)
+            if (!isset($venues[$v])) {
+                $venues[$v] = [];
+            }
+
+            $sTime = $row['start_time'];
+            $eTime = $row['end_time'];
+
+            $venues[$v][] = [
+                'title' => $row['meeting_name'],
+                'start' => is_a($sTime, 'DateTime') ? $sTime->format('h:i A') : date('h:i A', strtotime($sTime)),
+                'end' => is_a($eTime, 'DateTime') ? $eTime->format('h:i A') : date('h:i A', strtotime($eTime)),
+                'facilitator' => trim(($row['FirstName'] ?? '') . ' ' . ($row['LastName'] ?? '')) ?: $row['facilitator']
+            ];
+        }
+    }
+
+    echo json_encode([
+        'date' => date('M d, Y', strtotime($date)),
+        'venues' => $venues
+    ]);
+
+} else {
+    echo json_encode(['error' => 'Database connection failed']);
+}
+?>

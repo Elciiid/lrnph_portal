@@ -1,0 +1,15 @@
+<?php
+$auth_server_name = "YOUR_SERVER_IP";
+$connectionOptions = [
+    "UID" => "YOUR_USERNAME",
+    "PWD" => "YOUR_PASSWORD",
+    "Database" => "YOUR_DATABASE_NAME",
+    "CharacterSet" => "UTF-8"
+];
+
+$conn = sqlsrv_connect($auth_server_name, $connectionOptions);
+
+if (!$conn) {
+    die("Connection failed: " . print_r(sqlsrv_errors(), true));
+}
+?>

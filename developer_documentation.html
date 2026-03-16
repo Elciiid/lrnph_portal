@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Rose Noire Philippines - Developer Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-family: monospace; white-space: pre; }
+        .sidebar-link { display: block; padding: 0.5rem 1rem; color: #4b5563; border-radius: 0.375rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #f3f4f6; color: #111827; }
+        section { scroll-margin-top: 5rem; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- Navigation/Header -->
+<header class="bg-white shadow-sm fixed top-0 w-full z-10 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                CentralPoint Developer Docs
+            </h1>
+        </div>
+    </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 flex flex-col md:flex-row gap-8 pb-12">
+    <!-- Sidebar -->
+    <aside class="w-full md:w-64 flex-shrink-0">
+        <nav class="sticky top-24 space-y-1 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Contents</h3>
+            <a href="#overview" class="sidebar-link font-medium">1. Project Overview</a>
+            <a href="#tech-stack" class="sidebar-link font-medium">2. Technology Stack</a>
+            <a href="#architecture" class="sidebar-link font-medium">3. Architecture & Flows</a>
+            <a href="#structure" class="sidebar-link font-medium">4. Project Structure</a>
+            <a href="#database" class="sidebar-link font-medium">5. Database Schema</a>
+            <a href="#snippets" class="sidebar-link font-medium">6. Code Snippets</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+        
+        <!-- Overview -->
+        <section id="overview" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">1. Project Overview</h2>
+            <p class="mb-4 text-gray-600 leading-relaxed">
+                The Employee Portal serves as a central hub for employees to access internal applications, view company announcements, and manage their schedules. It features a modern, responsive design that adapts seamlessly from desktop to mobile devices.
+            </p>
+            <h3 class="text-xl font-semibold mb-3 text-gray-800 mt-6">Key Features</h3>
+            <ul class="list-disc pl-6 space-y-2 text-gray-600">
+                <li><strong>App Launcher:</strong> A grid of internal applications with search and "favorite" functionality.</li>
+                <li><strong>Announcements:</strong> Company news displaying headlines and detailed updates.</li>
+                <li><strong>Responsive Layout:</strong> Optimized for desktop (3-column layout) and mobile (toggleable off-canvas drawers).</li>
+                <li><strong>Admin Panel:</strong> A dashboard for managing content, users, and settings.</li>
+                <li><strong>Visual Effects:</strong> Three.js particle background for headlines (Desktop only).</li>
+            </ul>
+        </section>
+
+        <!-- Tech Stack -->
+        <section id="tech-stack" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">2. Technology Stack</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-6 border border-blue-100 rounded-xl bg-blue-50/50 shadow-sm">
+                    <h4 class="font-bold text-blue-800 text-lg mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                        Backend
+                    </h4>
+                    <ul class="text-blue-700 text-sm space-y-2 list-inside list-disc">
+                        <li>Native PHP (No framework)</li>
+                        <li>SQL Server (MSSQL)</li>
+                        <li>sqlsrv Driver for PHP</li>
+                    </ul>
+                </div>
+                <div class="p-6 border border-green-100 rounded-xl bg-green-50/50 shadow-sm">
+                    <h4 class="font-bold text-green-800 text-lg mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        Frontend
+                    </h4>
+                    <ul class="text-green-700 text-sm space-y-2 list-inside list-disc">
+                        <li>Tailwind CSS (Utility-first styling via CDN)</li>
+                        <li>Vanilla JavaScript (No jQuery dependency)</li>
+                        <li>Three.js (Used for the particle background effect)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture & Flows -->
+        <section id="architecture" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">3. Architecture & Process Flows</h2>
+            
+            <h3 class="text-xl font-semibold mb-3 mt-6 text-gray-800">System Architecture</h3>
+            <p class="mb-4 text-gray-600">The application follows a simple monolithic pattern where PHP handles both business logic and presentation rendering.</p>
+            <div class="bg-gray-50/50 p-6 rounded-xl flex justify-center mb-8 border border-gray-200">
+                <pre class="mermaid">
+                    graph TD
+                        Client[Client Browser] -->|HTTP Request| Portal[Portal index.php / admin.php]
+                        Portal --> Components[Reusable Components]
+                        Portal --> Actions[Action Scripts]
+                        Actions -->|Execute logic| DB[(MSSQL Database)]
+                        Components -->|Fetch data| DB
+                        DB -->|Return data| Components
+                        Components -->|Render HTML| Portal
+                        Portal -->|HTTP Response| Client
+                </pre>
+            </div>
+
+            <h3 class="text-xl font-semibold mb-3 mt-6 text-gray-800">Login & Authentication Flow</h3>
+            <p class="mb-4 text-gray-600">When a user attempts to log into the application, the following sequence occurs:</p>
+            <div class="bg-gray-50/50 p-6 rounded-xl flex justify-center border border-gray-200">
+                <pre class="mermaid">
+                    sequenceDiagram
+                        participant User
+                        participant Portal as login.php
+                        participant DB as LRNPH Database
+                        
+                        User->>Portal: Enter Username & Password
+                        Portal->>DB: Query lrnph_users table & Verify Hash
+                        DB-->>Portal: Return User Record / Status
+                        
+                        alt Valid Credentials
+                            Portal->>Portal: Set $_SESSION variables<br>Generate Session Token
+                            Portal-->>User: Redirect to index.php (Dashboard)
+                        else Invalid Credentials
+                            Portal-->>User: Display Error Message
+                        end
+                </pre>
+            </div>
+            
+            <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">Admin Role Checking Flow</h3>
+            <p class="mb-4 text-gray-600">A typical check for admin page access (<code>admin.php</code>):</p>
+            <div class="bg-gray-50/50 p-6 rounded-xl flex justify-center border border-gray-200 overflow-x-auto">
+                <pre class="mermaid">
+                    flowchart LR
+                        Start((Page Load)) --> CheckSession{Is session active?}
+                        CheckSession -- No --> RedirectLogin[Redirect to login.php]
+                        CheckSession -- Yes --> CheckRole{Is User Admin?}
+                        CheckRole -- No --> RedirectIndex[Redirect to index.php]
+                        CheckRole -- Yes --> LoadContent[Load Admin Content]
+                        LoadContent --> End((Render Page))
+                </pre>
+            </div>
+        </section>
+
+        <!-- Project Structure -->
+        <section id="structure" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">4. Project Structure</h2>
+            <div class="code-block text-sm shadow-inner mt-4">
+/larosenoireph-portal
+├── actions/             # Backend scripts for form processing (e.g. add_app.php)
+├── admin.php            # Main controller for the Admin Panel
+├── assets/              # Static assets (images, fonts)
+├── components/          # Reusable PHP partials (sidebar.php, header.php)
+├── includes/            # Configuration files (db.php, auth_session.php)
+├── index.php            # Main User Portal (Entry point / Dashboard)
+├── login.php            # User authentication page
+├── logout.php           # Session destruction script
+├── uploads/             # Directory for uploaded images/content
+└── style.css            # Custom CSS overrides for elements not covered by Tailwind
+            </div>
+            <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg text-sm text-yellow-800">
+                <p class="font-bold flex items-center gap-2 mb-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Routing Note
+                </p>
+                The admin panel (<code>admin.php</code>) uses query-parameter based routing (<code>?page=</code>). The content displayed is determined by including the matching physical file from the <code>components/</code> directory.
+            </div>
+        </section>
+
+        <!-- Database Schema -->
+        <section id="database" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">5. Database Schema</h2>
+            <p class="mb-6 text-gray-600">The application utilizes Microsoft SQL Server (MSSQL). Below are the primary tables used specifically by the portal.</p>
+            
+            <h3 class="text-lg font-bold mb-3 text-gray-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                portal_announcements
+            </h3>
+            <div class="overflow-x-auto mb-8 rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 font-bold text-gray-700">
+                        <tr><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Column</th><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Type</th><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Description</th></tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100 text-sm text-gray-600">
+                        <tr><td class="px-6 py-3 whitespace-nowrap font-medium text-gray-900">id</td><td class="px-6 py-3 font-mono text-xs">INT (PK)</td><td class="px-6 py-3">Primary Key</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">title</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(255)</td><td class="px-6 py-3">Announcement title</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">description</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(MAX)</td><td class="px-6 py-3">Full content/body</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">type</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(50)</td><td class="px-6 py-3">Format: 'headline' or 'announcement'</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">image_url</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(255)</td><td class="px-6 py-3">Path to uploaded banner image</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">is_active</td><td class="px-6 py-3 font-mono text-xs">BIT</td><td class="px-6 py-3">Status flag (1 = active, 0 = inactive)</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">created_by</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(50)</td><td class="px-6 py-3">Username of the author</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">created_at</td><td class="px-6 py-3 font-mono text-xs">DATETIME</td><td class="px-6 py-3">Timestamp of creation</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-lg font-bold mb-3 text-gray-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                portal_AppModules
+            </h3>
+            <p class="text-sm text-gray-500 mb-3">Replaced legacy `portal_apps`. Manages applications and their categories.</p>
+            <div class="overflow-x-auto mb-8 rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 font-bold text-gray-700">
+                        <tr><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Column</th><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Type</th><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Description</th></tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100 text-sm text-gray-600">
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">ID</td><td class="px-6 py-3 font-mono text-xs">INT (PK)</td><td class="px-6 py-3">Primary Key</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">module_column</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(50)</td><td class="px-6 py-3">Parent module grouping (e.g., 'Common')</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">app_name</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(100)</td><td class="px-6 py-3">Display title of the app</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">perm_key</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(50)</td><td class="px-6 py-3">Access control key string</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">app_url</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(MAX)</td><td class="px-6 py-3">URL link for launching the app</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-lg font-bold mb-3 text-gray-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                portal_schedule & Meeting Tables
+            </h3>
+            <p class="text-sm text-gray-500 mb-3">Stores planner and meeting information.</p>
+            <div class="overflow-x-auto rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 font-bold text-gray-700">
+                        <tr><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Table / Column</th><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Type</th><th class="px-6 py-3 text-left text-xs uppercase tracking-wider">Description</th></tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100 text-sm text-gray-600">
+                        <tr class="bg-gray-50"><td colspan="3" class="px-6 py-2 font-bold text-xs text-gray-500 uppercase">portal_schedule</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">id</td><td class="px-6 py-3 font-mono text-xs">INT (PK)</td><td class="px-6 py-3">Primary Key</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">title</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(255)</td><td class="px-6 py-3">Meeting Title</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">schedule_date</td><td class="px-6 py-3 font-mono text-xs">DATE</td><td class="px-6 py-3">Scheduled Date</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">start_time / end_time</td><td class="px-6 py-3 font-mono text-xs">TIME</td><td class="px-6 py-3">Meeting duration</td></tr>
+                        <tr class="bg-gray-50"><td colspan="3" class="px-6 py-2 font-bold text-xs text-gray-500 uppercase">portal_meeting_attendees (Junction)</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">meeting_id</td><td class="px-6 py-3 font-mono text-xs">INT (FK)</td><td class="px-6 py-3">Refers to portal_schedule.id</td></tr>
+                        <tr><td class="px-6 py-3 font-medium text-gray-900">employee_id</td><td class="px-6 py-3 font-mono text-xs">NVARCHAR(50)</td><td class="px-6 py-3">Biometrics ID of the attendee</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Common Code Snippets -->
+        <section id="snippets" class="mb-4">
+            <h2 class="text-3xl font-bold mb-4 text-gray-900 border-b pb-2">6. Common Code Snippets</h2>
+            
+            <h3 class="text-lg font-semibold mb-2 mt-6 text-gray-800">Database Connection (includes/db.php)</h3>
+            <p class="text-sm text-gray-600 mb-3">Connecting to the MSSQL Database using the <code>sqlsrv</code> driver array configuration.</p>
+            <div class="code-block mb-8 relative group text-sm">
+&lt;?php
+$serverName = "YOUR_SERVER_IP";
+$connectionOptions = [
+    "Database" => "YOUR_DB_NAME",
+    "Uid" => "YOUR_USERNAME",
+    "PWD" => "YOUR_PASSWORD"
+];
+
+// Establishes the connection
+$conn = sqlsrv_connect($serverName, $connectionOptions);
+
+if ($conn === false) {
+    die(print_r(sqlsrv_errors(), true));
+}
+?&gt;
+            </div>
+
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Basic Query Example</h3>
+            <p class="text-sm text-gray-600 mb-3">Example of standard parameterless query utilizing <code>sqlsrv_query</code> and fetching.</p>
+            <div class="code-block mb-8 text-sm">
+$sql = "SELECT title, description, image_url 
+        FROM portal_announcements 
+        WHERE is_active = 1 AND type = 'headline' 
+        ORDER BY created_at DESC";
+
+$stmt = sqlsrv_query($conn, $sql);
+
+if ($stmt === false) {
+    die(print_r(sqlsrv_errors(), true));
+}
+
+while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+    echo "&lt;h2&gt;" . htmlspecialchars($row['title']) . "&lt;/h2&gt;";
+}
+            </div>
+            
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Dynamic Admin Routing (`admin.php`)</h3>
+            <p class="text-sm text-gray-600 mb-3">The application serves its administrative views via simple switch statement routing.</p>
+            <div class="code-block text-sm">
+&lt;?php
+// Retrieve requested page or fallback to dashboard
+$page = $_GET['page'] ?? 'dashboard';
+
+switch ($page) {
+    case 'dashboard':
+        include 'components/dashboard.php';
+        break;
+    case 'announcements':
+        include 'components/announcements.php';
+        break;
+    // Add new cases here for new pages
+    default:
+        include 'components/404.php';
+        break;
+}
+?&gt;
+            </div>
+        </section>
+
+    </main>
+</div>
+
+</body>
+</html>
