@@ -21,29 +21,29 @@ if (!$date || !$startTime || !$endTime) {
 if (isset($conn)) {
     // 1. Check Facilitator Availability (Are THEY already in a meeting, either as creator or attendee?)
     $facilitatorBooked = false;
-    $facSql = "SELECT ps.meeting_id FROM prtl_AP_Meetings ps
-               WHERE ps.meeting_date = ? 
+    $facSql = "SELECT ps.meeting_id FROM \"prtl_AP_Meetings\" ps
+               WHERE ps.meeting_date = ?::date 
                AND (
                    ps.facilitator = ? 
-                   OR EXISTS (SELECT 1 FROM prtl_AP_Attendees att WHERE att.meeting_id = ps.meeting_id AND att.employee_id = ?)
+                   OR EXISTS (SELECT 1 FROM \"prtl_AP_Attendees\" att WHERE att.meeting_id = ps.meeting_id AND att.employee_id = ?)
                )
-               AND ps.start_time < ? 
-               AND ps.end_time > ?";
+               AND ps.start_time < ?::time 
+               AND ps.end_time > ?::time";
 
     $facStmt = $conn->prepare($facSql);
     $facStmt->execute([$date, $currentUserId, $currentUserId, $endTime, $startTime]);
-    if ($facStmt && sqlsrv_has_rows($facStmt)) {
+    if ($facStmt && $facStmt->fetch()) {
         $facilitatorBooked = true;
     }
 
     // 2. Check Unavailable Venues
     $unavailableVenues = [];
-    $venueSql = "SELECT DISTINCT venue FROM prtl_AP_Meetings 
-                 WHERE meeting_date = ? 
+    $venueSql = "SELECT DISTINCT venue FROM \"prtl_AP_Meetings\" 
+                 WHERE meeting_date = ?::date 
                  AND venue IS NOT NULL 
                  AND venue != 'Online'
-                 AND start_time < ? 
-                 AND end_time > ?";
+                 AND start_time < ?::time 
+                 AND end_time > ?::time";
 
     $venueStmt = $conn->prepare($venueSql);
     $venueStmt->execute([$date, $endTime, $startTime]);
@@ -55,12 +55,12 @@ if (isset($conn)) {
 
     // 3. Check All Booked Employees for this slot
     $bookedEmployees = [];
-    $empSql = "SELECT facilitator as employee_id FROM prtl_AP_Meetings 
-               WHERE meeting_date = ? AND start_time < ? AND end_time > ?
+    $empSql = "SELECT facilitator as employee_id FROM \"prtl_AP_Meetings\" 
+               WHERE meeting_date = ?::date AND start_time < ?::time AND end_time > ?::time
                UNION
-               SELECT att.employee_id FROM prtl_AP_Attendees att
-               JOIN prtl_AP_Meetings mt ON att.meeting_id = mt.meeting_id
-               WHERE mt.meeting_date = ? AND mt.start_time < ? AND mt.end_time > ? 
+               SELECT att.employee_id FROM \"prtl_AP_Attendees\" att
+               JOIN \"prtl_AP_Meetings\" mt ON att.meeting_id = mt.meeting_id
+               WHERE mt.meeting_date = ?::date AND mt.start_time < ?::time AND mt.end_time > ?::time 
                AND att.employee_id IS NOT NULL";
 
     $empStmt = $conn->prepare($empSql);

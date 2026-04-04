@@ -1,6 +1,6 @@
 <?php
 // Fetch announcements
-$annQuery = "SELECT * FROM prtl_portal_announcements ORDER BY created_at DESC";
+$annQuery = "SELECT * FROM \"prtl_portal_announcements\" ORDER BY created_at DESC";
 $annStmt = $conn->query($annQuery);
 $headlines = [];
 $announcements = [];
@@ -124,7 +124,7 @@ if ($annStmt) {
                             <div class="mt-auto border-t border-white/10 pt-3">
                                 <span class="text-[10px] text-pink-100/80 font-medium flex items-center gap-1">
                                     <i class="fa-regular fa-clock"></i>
-                                    <?php echo $ann['created_at']->format('M d, Y'); ?>
+                                    <?php echo date('M d, Y', strtotime($ann['created_at'])); ?>
                                 </span>
                             </div>
                         </div>
@@ -175,7 +175,7 @@ if ($annStmt) {
                             </p>
                             <div class="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
                                 <span
-                                    class="text-[10px] text-gray-400 font-medium"><?php echo $ann['created_at']->format('M d, Y'); ?></span>
+                                    class="text-[10px] text-gray-400 font-medium"><?php echo date('M d, Y', strtotime($ann['created_at'])); ?></span>
                                 <div class="flex gap-2">
                                     <button onclick='openEditAnnouncementModal(<?php echo json_encode($ann); ?>)'
                                         class="text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><i

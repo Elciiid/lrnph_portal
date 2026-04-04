@@ -1,22 +1,15 @@
 <?php
 
-// -- Configuration & DB --
-$emealsServer = "10.2.0.9";
-$emealsOptions = [
-    "Database" => "LRNPH_emeals",
-    "Uid" => "sa",
-    "PWD" => "S3rverDB02lrn25",
-    "CharacterSet" => "UTF-8"
-];
-
 // -- Helpers --
 if (!function_exists('emeals_format_val')) {
     function emeals_format_val($value, $format = 'Y-m-d H:i:s')
     {
+        if (empty($value)) return '';
         if ($value instanceof DateTimeInterface) {
             return $value->format($format);
         }
-        return (string) $value;
+        $timestamp = strtotime($value);
+        return $timestamp ? date($format, $timestamp) : (string) $value;
     }
 }
 
@@ -24,20 +17,17 @@ if (!function_exists('emeals_format_val')) {
 
 function get_emeals_schedule($deptFilter = null)
 {
-    global $emealsServer, $emealsOptions;
-    $conn = sqlsrv_connect($emealsServer, $emealsOptions);
-    if (!$conn)
-        return ['rows' => [], 'error' => print_r(['error' => 'Database error occurred'], true)];
-
-    $sql = "SELECT TOP 60 s.full_name, s.bio_id, s.plotted_date, s.time_in, s.time_out, s.schedule, s.overtime 
-            FROM [LRNPH_emeals].[dbo].[emeals_plotted_schedule] AS s
-            LEFT JOIN [LRNPH_E].[dbo].[prtl_lrn_master_list] AS ml ON ml.BiometricsID COLLATE SQL_Latin1_General_CP1_CI_AS = s.bio_id";
+    global $conn;
+    
+    $sql = "SELECT s.full_name, s.bio_id, s.plotted_date, s.time_in, s.time_out, s.schedule, s.overtime 
+            FROM \"prtl_emeals_plotted_schedule\" AS s
+            LEFT JOIN \"prtl_lrn_master_list\" AS ml ON ml.\"BiometricsID\" = s.bio_id";
     $params = [];
     if ($deptFilter) {
-        $sql .= " WHERE ml.Department = ?";
+        $sql .= " WHERE ml.\"Department\" = ?";
         $params[] = $deptFilter;
     }
-    $sql .= " ORDER BY CAST(s.plotted_date AS DATE) DESC, s.bio_id ASC";
+    $sql .= " ORDER BY s.plotted_date DESC, s.bio_id ASC LIMIT 60";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
@@ -50,18 +40,14 @@ function get_emeals_schedule($deptFilter = null)
             $rows[] = $r;
         }
     }
-    sqlsrv_close($conn);
-    return ['rows' => $rows, 'error' => $stmt ? null : print_r(['error' => 'Database error occurred'], true)];
+    return ['rows' => $rows, 'error' => $stmt ? null : 'Database error occurred'];
 }
 
 function get_fcl_access()
 {
-    global $emealsServer, $emealsOptions;
-    $conn = sqlsrv_connect($emealsServer, $emealsOptions);
-    if (!$conn)
-        return [];
+    global $conn;
 
-    $sql = "SELECT TOP 100 staff_code, employee_name, biometric, department, remarks, served FROM [LRNPH_emeals].[dbo].[fcl_access] ORDER BY staff_code ASC";
+    $sql = "SELECT staff_code, employee_name, biometric, department, remarks, served FROM \"prtl_fcl_access\" ORDER BY staff_code ASC LIMIT 100";
     $stmt = $conn->query($sql);
     $rows = [];
     if ($stmt) {
@@ -69,26 +55,22 @@ function get_fcl_access()
             $rows[] = $r;
         }
     }
-    sqlsrv_close($conn);
     return $rows;
 }
 
 function get_emeals_monitor()
 {
-    global $emealsServer, $emealsOptions;
-    $conn = sqlsrv_connect($emealsServer, $emealsOptions);
-    if (!$conn)
-        return [];
+    global $conn;
 
-    $sql = "SELECT TOP 100 
-            m.emp_id, m.full_name, MAX(CONVERT(date, m.log_date)) as log_date,
+    $sql = "SELECT 
+            m.emp_id, m.full_name, MAX(m.log_date::date) as log_date,
             MIN(m.log_time) as log_time, MAX(m.device_name) as device_name,
-            MAX(CAST(m.meal_1 as tinyint)) as meal_1, MAX(m.meal_1_datetime) as meal_1_datetime,
-            MAX(CAST(m.meal_2 as tinyint)) as meal_2, MAX(m.meal_2_datetime) as meal_2_datetime,
-            MAX(CAST(m.meal_3 as tinyint)) as meal_3, MAX(m.meal_3_datetime) as meal_3_datetime
-            FROM [LRNPH_emeals].[dbo].[emeals_monitor] m
+            MAX(m.meal_1::int) as meal_1, MAX(m.meal_1_datetime) as meal_1_datetime,
+            MAX(m.meal_2::int) as meal_2, MAX(m.meal_2_datetime) as meal_2_datetime,
+            MAX(m.meal_3::int) as meal_3, MAX(m.meal_3_datetime) as meal_3_datetime
+            FROM \"prtl_emeals_monitor\" m
             GROUP BY m.emp_id, m.full_name
-            ORDER BY MAX(CONVERT(date, m.log_date)) DESC, m.emp_id ASC";
+            ORDER BY MAX(m.log_date::date) DESC, m.emp_id ASC LIMIT 100";
 
     $stmt = $conn->query($sql);
     $rows = [];
@@ -102,7 +84,6 @@ function get_emeals_monitor()
             $rows[] = $r;
         }
     }
-    sqlsrv_close($conn);
     return $rows;
 }
 
@@ -117,9 +98,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'upload_fcl' && isset($_FILES['attendance_file'])) {
         $file = $_FILES['attendance_file']['tmp_name'];
         if (($handle = fopen($file, "r")) !== FALSE) {
-            $conn = sqlsrv_connect($emealsServer, $emealsOptions);
             fgetcsv($handle); // skip header
             $count = 0;
+            $sql = "INSERT INTO \"prtl_fcl_access\" (staff_code, employee_name, biometric, department, remarks, served) 
+                    VALUES (?, ?, ?, ?, ?, 0)
+                    ON CONFLICT (staff_code) DO UPDATE 
+                    SET employee_name = EXCLUDED.employee_name, biometric = EXCLUDED.biometric, 
+                        department = EXCLUDED.department, remarks = EXCLUDED.remarks";
+            $stmt = $conn->prepare($sql);
+
             while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
                 if (count($data) < 6)
                     continue;
@@ -129,16 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dept = trim($data[4]);
                 $rem = trim($data[5]);
 
-                // Merge Logic
-                $sql = "MERGE INTO [LRNPH_emeals].[dbo].[fcl_access] AS t
-                        USING (SELECT ? as sc) AS s ON t.staff_code = s.sc
-                        WHEN MATCHED THEN UPDATE SET employee_name=?, biometric=?, department=?, remarks=?
-                        WHEN NOT MATCHED THEN INSERT (staff_code, employee_name, biometric, department, remarks, served) VALUES (?,?,?,?,?,0);";
-                sqlsrv_query($conn, $sql, [$code, $name, $bio, $dept, $rem, $code, $name, $bio, $dept, $rem]);
+                $stmt->execute([$code, $name, $bio, $dept, $rem]);
                 $count++;
             }
             fclose($handle);
-            sqlsrv_close($conn);
             $actionMsg = "Successfully uploaded $count personnel records.";
             $actionStatus = 'success';
         } else {
@@ -151,7 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'upload_schedule' && isset($_FILES['schedule_csv'])) {
         $file = $_FILES['schedule_csv']['tmp_name'];
         if (($handle = fopen($file, "r")) !== FALSE) {
-            $conn = sqlsrv_connect($emealsServer, $emealsOptions);
             $header = fgetcsv($handle);
 
             $dateCols = [];
@@ -166,6 +146,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!empty($dateCols)) {
                 $count = 0;
+                $sql = "INSERT INTO \"prtl_emeals_plotted_schedule\" (full_name, bio_id, plotted_date, time_in, time_out, schedule, overtime) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT (bio_id, plotted_date) DO UPDATE 
+                        SET full_name = EXCLUDED.full_name, time_in = EXCLUDED.time_in, 
+                            time_out = EXCLUDED.time_out, schedule = EXCLUDED.schedule, overtime = EXCLUDED.overtime";
+                $stmt = $conn->prepare($sql);
+
                 while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
                     if (!isset($row[0]))
                         continue;
@@ -185,11 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $timeOut = $m[2];
                         }
 
-                        $sql = "MERGE INTO [LRNPH_emeals].[dbo].[emeals_plotted_schedule] AS t
-                                 USING (SELECT ? as bid, ? as pd) AS s ON t.bio_id = s.bid AND t.plotted_date = s.pd
-                                 WHEN MATCHED THEN UPDATE SET full_name=?, time_in=?, time_out=?, schedule=?, overtime=?
-                                 WHEN NOT MATCHED THEN INSERT (full_name, bio_id, plotted_date, time_in, time_out, schedule, overtime) VALUES (?,?,?,?,?,?,?);";
-                        sqlsrv_query($conn, $sql, [$bioId, $dateVal, $fullName, $timeIn, $timeOut, $sched, $ot, $fullName, $bioId, $dateVal, $timeIn, $timeOut, $sched, $ot]);
+                        $stmt->execute([$fullName, $bioId, $dateVal, $timeIn, $timeOut, $sched, $ot]);
                     }
                     $count++;
                 }
@@ -200,22 +183,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $actionStatus = 'error';
             }
             fclose($handle);
-            sqlsrv_close($conn);
         }
     }
 
     // Clear Served Actions
     if (isset($_POST['reset_served_action'])) {
-        $conn = sqlsrv_connect($emealsServer, $emealsOptions);
         if ($_POST['reset_served_action'] === 'all') {
-            sqlsrv_query($conn, "UPDATE [LRNPH_emeals].[dbo].[fcl_access] SET served = 0");
+            $conn->query("UPDATE \"prtl_fcl_access\" SET served = 0");
             $actionMsg = "All FCL served flags have been cleared.";
         } elseif ($_POST['reset_served_action'] === 'staff' && !empty($_POST['reset_staff_code'])) {
-            sqlsrv_query($conn, "UPDATE [LRNPH_emeals].[dbo].[fcl_access] SET served = 0 WHERE staff_code = ?", [$_POST['reset_staff_code']]);
+            $stmt = $conn->prepare("UPDATE \"prtl_fcl_access\" SET served = 0 WHERE staff_code = ?");
+            $stmt->execute([$_POST['reset_staff_code']]);
             $actionMsg = "Served status alert cleared for code: " . htmlspecialchars($_POST['reset_staff_code']);
         }
         $actionStatus = 'success';
-        sqlsrv_close($conn);
     }
 }
 

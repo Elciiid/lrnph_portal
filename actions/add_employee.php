@@ -28,7 +28,7 @@ if (empty($username) || empty($password) || empty($role) || empty($empcode)) {
 }
 
 // Check for existing username or empcode
-$checkQuery = "SELECT COUNT(*) as count FROM prtl_lrnph_users WHERE username = ? OR empcode = ?";
+$checkQuery = "SELECT COUNT(*) as count FROM \"prtl_lrnph_users\" WHERE username = ? OR empcode = ?";
 $checkParams = array($username, $empcode);
 $checkStmt = $conn->prepare($checkQuery);
     $checkStmt->execute($checkParams);
@@ -37,8 +37,8 @@ if ($checkStmt) {
     $row = $checkStmt->fetch(PDO::FETCH_ASSOC);
     if ($row['count'] > 0) {
         // Find which one exists specifically for a better error message
-        $specificCheckQuery = "SELECT (SELECT COUNT(*) FROM prtl_lrnph_users WHERE username = ?) as user_exists,
-                                     (SELECT COUNT(*) FROM prtl_lrnph_users WHERE empcode = ?) as code_exists";
+        $specificCheckQuery = "SELECT (SELECT COUNT(*) FROM \"prtl_lrnph_users\" WHERE username = ?) as user_exists,
+                                     (SELECT COUNT(*) FROM \"prtl_lrnph_users\" WHERE empcode = ?) as code_exists";
         $specStmt = $conn->prepare($specificCheckQuery);
     $specStmt->execute(array($username, $empcode));
         $specRow = $specStmt->fetch(PDO::FETCH_ASSOC);
@@ -60,8 +60,8 @@ if ($checkStmt) {
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
 // Target database as requested: LRNPH_OJT
-$query = "INSERT INTO prtl_lrnph_users (username, password, role, empcode, department, status, created_at, updated_at) 
-          VALUES (?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+$query = "INSERT INTO \"prtl_lrnph_users\" (username, password, role, empcode, department, status, created_at, updated_at) 
+          VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
 $params = array($username, $hashedPassword, $role, $empcode, $department, $status);
 $stmt = $conn->prepare($query);

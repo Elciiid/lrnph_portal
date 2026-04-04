@@ -13,7 +13,7 @@ $userPhoto = $isLoggedIn ? getEmployeePhotoUrl($_SESSION['employee_id'] ?? '') :
 // Fetch Data
 // 1. Headlines (Headlines)
 $headlines = [];
-$hlQuery = "SELECT * FROM prtl_portal_announcements WHERE type = 'headline' AND is_active = 1 ORDER BY created_at DESC LIMIT 1";
+$hlQuery = "SELECT * FROM \"prtl_portal_announcements\" WHERE type = 'headline' AND is_active = 1 ORDER BY created_at DESC LIMIT 1";
 $hlStmt = $conn->query($hlQuery);
 if ($hlStmt && $row = $hlStmt->fetch(PDO::FETCH_ASSOC)) {
     $headlines[] = $row;
@@ -21,7 +21,7 @@ if ($hlStmt && $row = $hlStmt->fetch(PDO::FETCH_ASSOC)) {
 
 // 2. Apps
 $apps = [];
-$appQuery = "SELECT * FROM prtl_portal_apps WHERE is_active = 1 ORDER BY sort_order ASC, name ASC";
+$appQuery = "SELECT * FROM \"prtl_portal_apps\" WHERE is_active = 1 ORDER BY sort_order ASC, name ASC";
 $appStmt = $conn->query($appQuery);
 if ($appStmt) {
     while ($row = $appStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -31,7 +31,7 @@ if ($appStmt) {
 
 // 3. Side Announcements
 $announcements = [];
-$annQuery = "SELECT * FROM prtl_portal_announcements WHERE type = 'announcement' AND is_active = 1 ORDER BY created_at DESC LIMIT 10";
+$annQuery = "SELECT * FROM \"prtl_portal_announcements\" WHERE type = 'announcement' AND is_active = 1 ORDER BY created_at DESC LIMIT 10";
 $annStmt = $conn->query($annQuery);
 if ($annStmt) {
     while ($row = $annStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -331,10 +331,10 @@ if ($annStmt) {
                             <div class="w-px h-2.5 bg-current opacity-20"></div>
                             <a href="<?php echo $isLoggedIn ? '/admin.php' : '/login.php'; ?>"
                                 class="pill-btn w-7 h-7 flex items-center justify-center rounded-full transition-all group/login relative hover:bg-white/20"
-                                title="Core Access">
-                                <i class="fa-solid <?php echo $isLoggedIn ? 'fa-shield-halved' : 'fa-right-to-bracket'; ?> text-[10px]"></i>
+                                title="<?php echo $isLoggedIn ? 'Admin Panel' : 'Login'; ?>">
+                                <i class="fa-solid <?php echo $isLoggedIn ? 'fa-user-shield' : 'fa-lock'; ?> text-[10px]"></i>
                                 <span
-                                    class="absolute top-9 right-0 bg-gray-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/login:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-tighter shadow-xl">Core Access</span>
+                                    class="absolute top-9 right-0 bg-gray-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/login:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-tighter shadow-xl"><?php echo $isLoggedIn ? 'Admin Panel' : 'Login'; ?></span>
                             </a>
                         </div>
                         <div class="flex-1 max-w-2xl pr-20">
@@ -1126,6 +1126,37 @@ if ($annStmt) {
                 scene.add(starParticles);
             }
 
+            let shootingStars = [];
+            function createShootingStar() {
+                const geometry = new THREE.BufferGeometry();
+                const points = [];
+                const startX = (Math.random() - 0.5) * 40;
+                const startY = (Math.random() * 10) + 5;
+                const startZ = -8;
+                
+                points.push(new THREE.Vector3(0, 0, 0));
+                points.push(new THREE.Vector3(-2, 1, 0)); // Tail
+                
+                geometry.setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 1,
+                    blending: THREE.AdditiveBlending
+                });
+                
+                const mesh = new THREE.Line(geometry, material);
+                mesh.position.set(startX, startY, startZ);
+                scene.add(mesh);
+                
+                shootingStars.push({
+                    mesh,
+                    vx: (Math.random() + 0.5) * 0.5,
+                    vy: -(Math.random() + 0.5) * 0.3,
+                    life: 1.0
+                });
+            }
+
             let lastWeatherCode = null;
 
             // Weather Fetcher
@@ -1134,14 +1165,24 @@ if ($annStmt) {
                     // Mabalacat, Pampanga Coordinates: 15.2229° N, 120.5744° E
                     const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=15.2229&longitude=120.5744&current_weather=true');
                     const data = await response.json();
+                    
+                    const localHours = new Date().getHours();
+                    const isDayLocal = (localHours >= 6 && localHours < 18) ? 1 : 0;
+
                     if (data && data.current_weather) {
                         const code = data.current_weather.weathercode;
                         const temp = data.current_weather.temperature;
-                        const isDay = data.current_weather.is_day;
-                        const statusKey = code + '-' + isDay;
-                        console.log("Weather fetched for Mabalacat:", code, temp, "isDay:", isDay);
+                        // Use API is_day but respect local time if it's vastly different (e.g. night time)
+                        let isDay = data.current_weather.is_day;
+                        
+                        // Safety: If it's between 7PM and 5AM local time, force night mode regardless of API
+                        if (localHours >= 19 || localHours <= 5) {
+                            isDay = 0;
+                        }
 
-                        // Self-refresh portal if weather changes after initial load
+                        const statusKey = code + '-' + isDay;
+                        console.log("Weather fetched for Mabalacat:", code, temp, "isDay:", isDay, "LocalHours:", localHours);
+
                         if (lastWeatherCode !== null && lastWeatherCode !== statusKey) {
                             console.log("Weather/Time changed. Refreshing portal...");
                             window.location.reload();
@@ -1440,18 +1481,38 @@ if ($annStmt) {
                             // Reset if too high
                             if (positions[i * 3 + 1] > 10) positions[i * 3 + 1] = -10;
                         }
-                        sunParticles.geometry.attributes.position.needsUpdate = true;
                     }
+                }
                 if (nightGroup) {
                     // Subtle moon floating
                     nightGroup.position.y = 8 + Math.sin(time * 0.5) * 0.2;
                     nightGroup.position.x = 2 + Math.cos(time * 0.5) * 0.1;
                 }
                 if (starParticles) {
-                    // Gentle twinkling (via scaling or opacity if we had a custom shader, 
-                    // but simple rotation for "parallax" feel)
-                    starParticles.rotation.z += 0.001;
-                    starParticles.rotation.y += 0.0005;
+                    // Gentle twinkling
+                    starParticles.rotation.z += 0.0005;
+                    // Pulse opacity for twinkling effect
+                    starParticles.material.opacity = 0.6 + Math.sin(time * 2) * 0.2;
+
+                    // Shooting Star Logic
+                    if (Math.random() > 0.995) {
+                        createShootingStar();
+                    }
+                }
+
+                // Update Shooting Stars
+                for (let i = shootingStars.length - 1; i >= 0; i--) {
+                    const ss = shootingStars[i];
+                    ss.mesh.position.x += ss.vx;
+                    ss.mesh.position.y += ss.vy;
+                    ss.life -= 0.02;
+                    ss.mesh.material.opacity = ss.life;
+                    if (ss.life <= 0) {
+                        scene.remove(ss.mesh);
+                        ss.mesh.geometry.dispose();
+                        ss.mesh.material.dispose();
+                        shootingStars.splice(i, 1);
+                    }
                 }
 
                 if (particleSystem) {

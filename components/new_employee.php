@@ -2,7 +2,7 @@
 // Fetch Departments for the dropdown
 $departments = [];
 if (isset($conn)) {
-    $deptQuery = "SELECT DISTINCT Department FROM prtl_lrn_master_list WHERE isActive = 1 ORDER BY Department ASC";
+    $deptQuery = "SELECT DISTINCT \"Department\" FROM \"prtl_lrn_master_list\" WHERE \"isActive\" = true ORDER BY \"Department\" ASC";
     $deptStmt = $conn->query($deptQuery);
     if ($deptStmt) {
         while ($row = $deptStmt->fetch(PDO::FETCH_ASSOC)) {

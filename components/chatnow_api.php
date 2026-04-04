@@ -22,21 +22,9 @@ $username = $_SESSION['username'];
 $employeeId = $_SESSION['employee_id'] ?? '';
 $fullname = preg_replace('/\s+/', ' ', trim($_SESSION['fullname'] ?? $username));
 
-// Database Connection to LRNPH_ITmanagement (Chat DB)
-$serverName = "10.2.0.9";
-$connectionOptions = [
-    "Database" => "LRNPH_ITmanagement",
-    "Uid" => "sa",
-    "PWD" => "S3rverDB02lrn25",
-    "CharacterSet" => "UTF-8"
-];
-
-$mssql = sqlsrv_connect($serverName, $connectionOptions);
-if (!$mssql) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Database connection failed']);
-    exit;
-}
+// Database Connection to LRNPH_E (Supabase PostgreSQL)
+require_once __DIR__ . '/../includes/db.php';
+// $conn is already available from db.php
 
 // Helpers
 function json_out($arr, $code = 200)
@@ -47,81 +35,11 @@ function json_out($arr, $code = 200)
     exit;
 }
 
-// Ensure schema exists
-$schemaSQL = "
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserPresence]') AND type in (N'U'))
-BEGIN
-    CREATE TABLE prtl_UserPresence (
-        user_name NVARCHAR(150) NOT NULL PRIMARY KEY,
-        status NVARCHAR(10) NOT NULL DEFAULT 'offline',
-        last_seen DATETIME NOT NULL DEFAULT GETDATE()
-    );
-END;
-
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserNotes]') AND type in (N'U'))
-BEGIN
-    CREATE TABLE prtl_UserNotes (
-        username NVARCHAR(150) NOT NULL PRIMARY KEY,
-        note_text NVARCHAR(60) NOT NULL,
-        image_path NVARCHAR(255) NULL,
-        updated_at DATETIME NOT NULL DEFAULT GETDATE()
-    );
-END;
-ELSE
-BEGIN
-    -- Ensure image_path column exists if table was already created
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserNotes]') AND name = 'image_path')
-    BEGIN
-        ALTER TABLE prtl_UserNotes ADD image_path NVARCHAR(255) NULL;
-    END
-
-    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_StoryViews]') AND type in (N'U'))
-    BEGIN
-        CREATE TABLE prtl_StoryViews (
-            viewer_name NVARCHAR(150) NOT NULL,
-            story_owner_name NVARCHAR(150) NOT NULL,
-            last_viewed_at DATETIME NOT NULL DEFAULT GETDATE(),
-            reaction NVARCHAR(50) NULL,
-            PRIMARY KEY (viewer_name, story_owner_name)
-        );
-    END
-    ELSE
-    BEGIN
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_StoryViews]') AND name = 'reaction')
-        BEGIN
-            ALTER TABLE prtl_StoryViews ADD reaction NVARCHAR(50) NULL;
-        END
-    END
-    -- Ensure prtl_Messages table has reply_to_id
-    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_Messages]') AND type in (N'U'))
-    BEGIN
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_Messages]') AND name = 'reply_to_id')
-        BEGIN
-            ALTER TABLE prtl_Messages ADD reply_to_id INT NULL;
-        END
-    END
-END;
-    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_CallSignals]') AND type in (N'U'))
-    BEGIN
-        CREATE TABLE prtl_CallSignals (
-            id INT IDENTITY(1,1) PRIMARY KEY,
-            caller_name NVARCHAR(150) NOT NULL,
-            receiver_name NVARCHAR(150) NOT NULL,
-            status NVARCHAR(20) NOT NULL DEFAULT 'ringing', -- ringing, accepted, declined, ended
-            created_at DATETIME NOT NULL DEFAULT GETDATE(),
-            updated_at DATETIME NOT NULL DEFAULT GETDATE()
-        );
-    END
-";
-
-// Execute schema once to ensure required tables exist
-sqlsrv_query($mssql, $schemaSQL);
-
 // Cleanup old story views (older than 24 hours)
-sqlsrv_query($mssql, "DELETE FROM prtl_StoryViews WHERE last_viewed_at < DATEADD(hour, -24, GETDATE())");
+$conn->query("DELETE FROM \"prtl_StoryViews\" WHERE last_viewed_at < CURRENT_TIMESTAMP - INTERVAL '24 hours'");
 
 // Cleanup old call signals (older than 1 hour)
-sqlsrv_query($mssql, "DELETE FROM prtl_CallSignals WHERE updated_at < DATEADD(hour, -1, GETDATE())");
+$conn->query("DELETE FROM \"prtl_CallSignals\" WHERE updated_at < CURRENT_TIMESTAMP - INTERVAL '1 hour'");
 
 // --- API Router ---
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -131,39 +49,47 @@ if ($action === 'start_call') {
     $receiver = $_POST['receiver'];
 
     // End any existing calls for caller/receiver
-    sqlsrv_query($mssql, "UPDATE prtl_CallSignals SET status = 'ended', updated_at = GETDATE() WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')", [$caller, $caller]);
-    sqlsrv_query($mssql, "UPDATE prtl_CallSignals SET status = 'ended', updated_at = GETDATE() WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')", [$receiver, $receiver]);
+    $updSql = "UPDATE \"prtl_CallSignals\" SET status = 'ended', updated_at = CURRENT_TIMESTAMP WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')";
+    $updStmt = $conn->prepare($updSql);
+    $updStmt->execute([$caller, $caller]);
+    $updStmt->execute([$receiver, $receiver]);
 
-    $sql = "INSERT INTO prtl_CallSignals (caller_name, receiver_name, status) VALUES (?, ?, 'ringing')";
-    $res = sqlsrv_query($mssql, $sql, [$caller, $receiver]);
+    $sql = "INSERT INTO \"prtl_CallSignals\" (caller_name, receiver_name, status) VALUES (?, ?, 'ringing')";
+    $stmt = $conn->prepare($sql);
 
-    if ($res) {
+    if ($stmt->execute([$caller, $receiver])) {
         echo json_encode(['ok' => true]);
     } else {
-        echo json_encode(['ok' => false, 'error' => 'Failed to start call: ' . print_r(['error' => 'Database error occurred'], true)]);
+        echo json_encode(['ok' => false, 'error' => 'Failed to start call']);
     }
     exit;
 }
 
 if ($action === 'check_call_status') {
     $me = $_SESSION['fullname'];
-    $cid = $_GET['cid'] ?? 0;
 
     // Check if someone is calling ME (Incoming)
-    $incoming = sqlsrv_query($mssql, "SELECT TOP 1 * FROM prtl_CallSignals WHERE receiver_name = ? AND status = 'ringing' ORDER BY created_at DESC", [$me]);
-    if ($incoming && $row = $incoming->fetch(PDO::FETCH_ASSOC)) {
+    $incomingSql = "SELECT * FROM \"prtl_CallSignals\" WHERE receiver_name = ? AND status = 'ringing' ORDER BY created_at DESC LIMIT 1";
+    $incStmt = $conn->prepare($incomingSql);
+    $incStmt->execute([$me]);
+    if ($incStmt && $row = $incStmt->fetch(PDO::FETCH_ASSOC)) {
         // Fetch caller's EmployeeID for photo
         $callerName = $row['caller_name'];
-        $hq = sqlsrv_query($mssql, "SELECT TOP 1 EmployeeID FROM prtl_lrn_master_list WHERE REPLACE(REPLACE(LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName)), '  ', ' '), '  ', ' ') = ?", [$callerName]);
-        $eid = ($hq && $hr = sqlsrv_fetch_array($hq)) ? $hr['EmployeeID'] : '';
+        $hqSql = "SELECT \"EmployeeID\" FROM \"prtl_lrn_master_list\" WHERE REPLACE(REPLACE(\"FirstName\" || ' ' || \"LastName\", '  ', ' '), '  ', ' ') = ? LIMIT 1";
+        $hqStmt = $conn->prepare($hqSql);
+        $hqStmt->execute([$callerName]);
+        $hr = $hqStmt->fetch(PDO::FETCH_ASSOC);
+        $eid = $hr ? $hr['EmployeeID'] : '';
 
         echo json_encode(['ok' => true, 'type' => 'incoming', 'caller' => $callerName, 'eid' => $eid, 'call_id' => $row['id']]);
         exit;
     }
 
     // Check status of my OUTGOING call
-    $outgoing = sqlsrv_query($mssql, "SELECT TOP 1 * FROM prtl_CallSignals WHERE caller_name = ? AND status IN ('ringing', 'accepted', 'declined', 'ended') ORDER BY created_at DESC", [$me]);
-    if ($outgoing && $row = $outgoing->fetch(PDO::FETCH_ASSOC)) {
+    $outgoingSql = "SELECT * FROM \"prtl_CallSignals\" WHERE caller_name = ? AND status IN ('ringing', 'accepted', 'declined', 'ended') ORDER BY created_at DESC LIMIT 1";
+    $outStmt = $conn->prepare($outgoingSql);
+    $outStmt->execute([$me]);
+    if ($outStmt && $row = $outStmt->fetch(PDO::FETCH_ASSOC)) {
         echo json_encode(['ok' => true, 'type' => 'outgoing', 'status' => $row['status'], 'call_id' => $row['id']]);
         exit;
     }
@@ -177,10 +103,10 @@ if ($action === 'handle_call_action') {
     $callId = $_POST['call_id'];
     $newStatus = $_POST['status']; // accepted, declined, ended
 
-    $sql = "UPDATE prtl_CallSignals SET status = ?, updated_at = GETDATE() WHERE id = ?";
-    $res = sqlsrv_query($mssql, $sql, [$newStatus, $callId]);
+    $sql = "UPDATE \"prtl_CallSignals\" SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+    $stmt = $conn->prepare($sql);
 
-    if ($res) {
+    if ($stmt->execute([$newStatus, $callId])) {
         echo json_encode(['ok' => true]);
     } else {
         echo json_encode(['ok' => false, 'error' => 'Failed to update call']);
@@ -193,30 +119,24 @@ function set_user_presence($conn, string $name, string $status = 'online'): void
 {
     if ($name === '')
         return;
-    sqlsrv_query(
-        $conn,
-        "MERGE prtl_UserPresence AS t
-         USING (SELECT ? AS user_name, ? AS status) AS s
-         ON t.user_name = s.user_name
-         WHEN MATCHED THEN
-             UPDATE SET status = s.status, last_seen = GETDATE()
-         WHEN NOT MATCHED THEN
-             INSERT (user_name, status, last_seen) VALUES (s.user_name, s.status, GETDATE());",
-        [$name, $status]
-    );
+    $sql = "INSERT INTO \"prtl_UserPresence\" (username, status, last_seen) VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (username) DO UPDATE SET status = EXCLUDED.status, last_seen = CURRENT_TIMESTAMP";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$name, $status]);
 }
 
 if (!empty($fullname)) {
-    set_user_presence($mssql, $fullname, 'online');
+    set_user_presence($conn, $fullname, 'online');
 }
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
 
-    // --- Delete Story (Image only) ---
     if ($action === 'delete_story') {
-        sqlsrv_query($mssql, "UPDATE prtl_UserNotes SET image_path = NULL, updated_at = GETDATE() WHERE username = ?", [$fullname]);
+        $sql = "UPDATE \"prtl_UserNotes\" SET image_path = NULL, updated_at = CURRENT_TIMESTAMP WHERE username = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$fullname]);
         json_out(['ok' => true]);
     }
 
@@ -224,12 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'mark_story_seen') {
         $owner = trim($_POST['owner'] ?? '');
         if ($owner !== '') {
-            $sql = "MERGE prtl_StoryViews AS t
-                    USING (SELECT ? AS viewer, ? AS owner) AS s
-                    ON t.viewer_name = s.viewer AND t.story_owner_name = s.owner
-                    WHEN MATCHED THEN UPDATE SET last_viewed_at = GETDATE()
-                    WHEN NOT MATCHED THEN INSERT (viewer_name, story_owner_name, last_viewed_at) VALUES (s.viewer, s.owner, GETDATE());";
-            sqlsrv_query($mssql, $sql, [$fullname, $owner]);
+            $sql = "INSERT INTO \"prtl_StoryViews\" (viewer_name, story_owner_name, last_viewed_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT (viewer_name, story_owner_name) DO UPDATE SET last_viewed_at = CURRENT_TIMESTAMP";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$fullname, $owner]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false]);
@@ -247,7 +165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 mkdir($uploadDir, 0777, true);
             }
             $ext = strtolower(pathinfo($_FILES['note_image']['name'], PATHINFO_EXTENSION));
-            // Only allow common image formats for stories to prevent security issues and huge files
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
                 $fileName = 'story_' . time() . '_' . uniqid() . '.' . $ext;
                 $targetFile = $uploadDir . $fileName;
@@ -258,28 +175,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         if ($noteText === '' && $imagePath === null) {
-            // If they are clearing both, delete the node entirely
-            sqlsrv_query($mssql, "DELETE FROM prtl_UserNotes WHERE username = ?", [$fullname]);
+            $sql = "DELETE FROM \"prtl_UserNotes\" WHERE username = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$fullname]);
         } else {
-            // Keep existing image if they are just updating text and didn't upload a new one
             if ($imagePath === null) {
-                $mergeSql = "
-                    MERGE prtl_UserNotes AS t
-                    USING (SELECT ? AS username, ? AS note_text) AS s
-                    ON t.username = s.username
-                    WHEN MATCHED THEN UPDATE SET note_text = s.note_text, updated_at = GETDATE()
-                    WHEN NOT MATCHED THEN INSERT (username, note_text, updated_at) VALUES (s.username, s.note_text, GETDATE());
-                ";
-                sqlsrv_query($mssql, $mergeSql, [$fullname, $noteText]);
+                $sql = "INSERT INTO \"prtl_UserNotes\" (username, note_text, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT (username) DO UPDATE SET note_text = EXCLUDED.note_text, updated_at = CURRENT_TIMESTAMP";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$fullname, $noteText]);
             } else {
-                $mergeSql = "
-                    MERGE prtl_UserNotes AS t
-                    USING (SELECT ? AS username, ? AS note_text, ? AS image_path) AS s
-                    ON t.username = s.username
-                    WHEN MATCHED THEN UPDATE SET note_text = s.note_text, image_path = s.image_path, updated_at = GETDATE()
-                    WHEN NOT MATCHED THEN INSERT (username, note_text, image_path, updated_at) VALUES (s.username, s.note_text, s.image_path, GETDATE());
-                ";
-                sqlsrv_query($mssql, $mergeSql, [$fullname, $noteText, $imagePath]);
+                $sql = "INSERT INTO \"prtl_UserNotes\" (username, note_text, image_path, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT (username) DO UPDATE SET note_text = EXCLUDED.note_text, image_path = EXCLUDED.image_path, updated_at = CURRENT_TIMESTAMP";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$fullname, $noteText, $imagePath]);
             }
         }
         json_out(['ok' => true]);
@@ -298,38 +207,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             json_out(['ok' => false, 'error' => 'Group name and creator required.'], 400);
         }
 
-        sqlsrv_begin_transaction($mssql);
+        try {
+            $conn->beginTransaction();
 
-        $stmt = sqlsrv_query(
-            $mssql,
-            "INSERT INTO prtl_Conversations (name, created_by) OUTPUT INSERTED.id VALUES (?, ?)",
-            [$groupName, $creator]
-        );
+            $sql = "INSERT INTO \"prtl_Conversations\" (name, created_by) VALUES (?, ?) RETURNING id";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$groupName, $creator]);
+            $cid = $stmt->fetchColumn();
 
-        if ($stmt === false) {
-            sqlsrv_rollback($mssql);
-            json_out(['ok' => false, 'error' => 'Insert conversation failed'], 500);
-        }
-
-        $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_NUMERIC);
-        $cid = (int) $row[0];
-
-        // Add creator
-        sqlsrv_query($mssql, "INSERT INTO prtl_ConversationParticipants (conversation_id, participant_name) VALUES (?, ?)", [$cid, $creator]);
-
-        // Add members
-        $seen = [$creator => true];
-        foreach ($members as $m) {
-            $n = trim($m['name'] ?? '');
-            $b = trim($m['bio'] ?? ''); // we might not use bio logic here but keeping compat
-            if ($n !== '' && !isset($seen[$n])) {
-                $seen[$n] = true;
-                sqlsrv_query($mssql, "INSERT INTO prtl_ConversationParticipants (conversation_id, participant_name, participant_bio) VALUES (?, ?, ?)", [$cid, $n, $b ?: null]);
+            if (!$cid) {
+                throw new Exception('Insert conversation failed');
             }
-        }
 
-        sqlsrv_commit($mssql);
-        json_out(['ok' => true, 'cid' => $cid]);
+            // Add creator
+            $insPartSql = "INSERT INTO \"prtl_ConversationParticipants\" (conversation_id, participant_name) VALUES (?, ?)";
+            $insPartStmt = $conn->prepare($insPartSql);
+            $insPartStmt->execute([$cid, $creator]);
+
+            // Add members
+            $seen = [$creator => true];
+            foreach ($members as $m) {
+                $n = trim($m['name'] ?? '');
+                $b = trim($m['bio'] ?? '');
+                if ($n !== '' && !isset($seen[$n])) {
+                    $seen[$n] = true;
+                    $insMemberSql = "INSERT INTO \"prtl_ConversationParticipants\" (conversation_id, participant_name, participant_bio) VALUES (?, ?, ?)";
+                    $insMemberStmt = $conn->prepare($insMemberSql);
+                    $insMemberStmt->execute([$cid, $n, $b ?: null]);
+                }
+            }
+
+            $conn->commit();
+            json_out(['ok' => true, 'cid' => $cid]);
+        } catch (Exception $e) {
+            $conn->rollBack();
+            json_out(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     // --- Search Users (for adding to group) ---
@@ -340,27 +253,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (strlen($q) < 2)
             json_out(['ok' => true, 'results' => []]);
 
-        // We need a secondary connection to LRNPH_E for user list, OR assume we can cross-query if on same server instance.
-        // The config shows 10.2.0.9 for both? No, includes/db.php was 10.2.0.9 LRNPH_E.
-        // This file connects to 10.2.0.9 LRNPH_ITmanagement. 
-        // Cross DB query usually works if user has permissions. 
-
-        // Search both Master List and OJT Employees
-        $sql = "SELECT TOP 15 name, Department, EmployeeID FROM (
-                    SELECT (LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName))) as name, Department, EmployeeID, 1 as priority
-                    FROM prtl_lrn_master_list 
-                    WHERE (FirstName LIKE ? OR LastName LIKE ? OR (LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName))) LIKE ?) AND isActive = 1
+        $sql = "SELECT name, \"Department\", \"EmployeeID\" FROM (
+                    SELECT (\"FirstName\" || ' ' || \"LastName\") as name, \"Department\", \"EmployeeID\", 1 as priority
+                    FROM \"prtl_lrn_master_list\" 
+                    WHERE (\"FirstName\" ILIKE ? OR \"LastName\" ILIKE ? OR (\"FirstName\" || ' ' || \"LastName\") ILIKE ?) AND \"isActive\" = true
                     UNION ALL
-                    SELECT full_name as name, department as Department, employee_id as EmployeeID, 2 as priority
-                    FROM prtl_app_ojt_employees
-                    WHERE full_name LIKE ?
+                    SELECT full_name as name, department as \"Department\", employee_id as \"EmployeeID\", 2 as priority
+                    FROM \"prtl_app_ojt_employees\"
+                    WHERE full_name ILIKE ?
                 ) t
-                ORDER BY priority, name";
+                ORDER BY priority, name LIMIT 15";
         $param = ["%$q%", "%$q%", "%$q%", "%$q%"];
 
-        $stmt = sqlsrv_query($mssql, $sql, $param);
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($param);
         if ($stmt === false) {
-            json_out(['ok' => false, 'error' => 'Search failed', 'd' => ['error' => 'Database error occurred']]);
+            json_out(['ok' => false, 'error' => 'Search failed']);
         }
 
         $res = [];
@@ -384,27 +292,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                lm.message AS last_message,
                lm.attachment_name AS last_attachment,
                lm.sent_at AS last_time
-        FROM prtl_Conversations c
-        INNER JOIN prtl_ConversationParticipants p
+        FROM \"prtl_Conversations\" c
+        INNER JOIN \"prtl_ConversationParticipants\" p
             ON p.conversation_id = c.id AND p.participant_name = ?
-        OUTER APPLY (
-            SELECT TOP 1 m.id, m.sender, m.message, m.attachment_name, m.sent_at
-            FROM prtl_Messages m
+        LEFT JOIN LATERAL (
+            SELECT m.id, m.sender, m.message, m.attachment_name, m.sent_at
+            FROM \"prtl_Messages\" m
             WHERE m.conversation_id = c.id
             ORDER BY m.sent_at DESC, m.id DESC
-        ) lm
-        ORDER BY c.name ASC;";
+            LIMIT 1
+        ) lm ON TRUE
+        ORDER BY c.name ASC";
 
-        $st = sqlsrv_query($mssql, $sql, [$me]);
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$me]);
         $rows = [];
-        if ($st) {
-            while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+        if ($stmt) {
+            while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $rows[] = [
                     'id' => (int) $r['id'],
                     'name' => $r['name'],
                     'last_message' => $r['last_message'] ?? '',
                     'last_sender' => $r['last_sender'] ?? '',
-                    'last_time' => ($r['last_time'] instanceof DateTime) ? $r['last_time']->format('Y-m-d H:i') : ''
+                    'last_time' => $r['last_time'] ? date('Y-m-d H:i', strtotime($r['last_time'])) : ''
                 ];
             }
         }
@@ -414,17 +324,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // --- Fetch Latest DMs ---
     if ($action === 'check_dm_latest') {
         $me = $fullname;
-        // Simplified query for DMs
         $sql = "
         WITH convs AS (
             SELECT
-              CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN m.sender ELSE ISNULL(m.receiver,'') END AS u1,
-              CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN ISNULL(m.receiver,'') ELSE m.sender END AS u2
-            FROM prtl_Messages m
+              CASE WHEN m.sender <= COALESCE(m.receiver,'') THEN m.sender ELSE COALESCE(m.receiver,'') END AS u1,
+              CASE WHEN m.sender <= COALESCE(m.receiver,'') THEN COALESCE(m.receiver,'') ELSE m.sender END AS u2
+            FROM \"prtl_Messages\" m
             WHERE m.receiver IS NOT NULL
               AND (m.sender = ? OR m.receiver = ?)
-            GROUP BY CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN m.sender ELSE ISNULL(m.receiver,'') END,
-                     CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN ISNULL(m.receiver,'') ELSE m.sender END
+            GROUP BY u1, u2
         ),
         lastmsg AS (
             SELECT
@@ -432,18 +340,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
               m.id, m.sender, m.message, m.sent_at,
               ROW_NUMBER() OVER (PARTITION BY c.u1, c.u2 ORDER BY m.sent_at DESC, m.id DESC) AS rn
             FROM convs c
-            JOIN prtl_Messages m
+            JOIN \"prtl_Messages\" m
               ON ((m.sender = c.u1 AND m.receiver = c.u2) OR (m.sender = c.u2 AND m.receiver = c.u1))
         )
         SELECT u1, u2, id, sender, message, sent_at
         FROM lastmsg
         WHERE rn = 1
-        ORDER BY sent_at DESC, id DESC;";
+        ORDER BY sent_at DESC, id DESC";
 
-        $st = sqlsrv_query($mssql, $sql, [$me, $me]);
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$me, $me]);
         $rows = [];
-        if ($st) {
-            while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+        if ($stmt) {
+            while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $other = ($r['u1'] === $me) ? ($r['u2'] ?? '') : ($r['u1'] ?? '');
                 if ($other === '')
                     continue;
@@ -451,35 +360,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'other' => $other,
                     'last_message' => $r['message'] ?? '',
                     'last_sender' => $r['sender'] ?? '',
-                    'last_time' => ($r['sent_at'] instanceof DateTime) ? $r['sent_at']->format('Y-m-d H:i') : ''
+                    'last_time' => $r['sent_at'] ? date('Y-m-d H:i', strtotime($r['sent_at'])) : ''
                 ];
             }
         }
         json_out(['ok' => true, 'list' => $rows]);
     }
 
-    // --- Fetch Group prtl_Messages ---
+    // --- Fetch Group Messages ---
     if ($action === 'fetch_group_messages') {
         $cid = (int) ($_POST['cid'] ?? 0);
         $rows = [];
         if ($cid > 0) {
             $sql = "SELECT m.id, m.sender, m.message, m.attachment_path, m.attachment_name, m.sent_at, m.reply_to_id, 
-                           e.EmployeeID,
+                           e.\"EmployeeID\",
                            r.sender as reply_sender, r.message as reply_text
-                    FROM prtl_Messages m
-                    LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
-                    LEFT JOIN prtl_Messages r ON m.reply_to_id = r.id
+                    FROM \"prtl_Messages\" m
+                    LEFT JOIN \"prtl_lrn_master_list\" e ON REPLACE(REPLACE(\"FirstName\" || ' ' || \"LastName\", '  ', ' '), '  ', ' ') = REPLACE(REPLACE(m.sender, '  ', ' '), '  ', ' ')
+                    LEFT JOIN \"prtl_Messages\" r ON m.reply_to_id = r.id
                     WHERE m.conversation_id = ? ORDER BY m.sent_at ASC";
-            $st = sqlsrv_query($mssql, $sql, [$cid]);
-            if ($st) {
-                while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$cid]);
+            if ($stmt) {
+                while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $rows[] = [
                         'id' => (int) $r['id'],
                         'sender' => $r['sender'],
                         'message' => $r['message'],
                         'attachment_path' => $r['attachment_path'],
                         'attachment_name' => $r['attachment_name'],
-                        'sent_at' => ($r['sent_at'] instanceof DateTime) ? $r['sent_at']->format('Y-m-d H:i') : '',
+                        'sent_at' => $r['sent_at'] ? date('Y-m-d H:i', strtotime($r['sent_at'])) : '',
                         'photo' => resolve_photo_url($r['EmployeeID'] ?? ''),
                         'reply_to' => $r['reply_to_id'],
                         'reply_sender' => $r['reply_sender'],
@@ -495,7 +405,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'send_group_message') {
         $cid = (int) ($_POST['cid'] ?? 0);
         $msg = trim($_POST['message'] ?? '');
-        // handle file upload if present
         $attachmentPath = null;
         $attachmentName = null;
 
@@ -524,49 +433,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($cid > 0 && ($msg !== '' || $attachmentPath)) {
             $replyTo = !empty($_POST['reply_to']) ? (int) $_POST['reply_to'] : null;
-            $sql = "INSERT INTO prtl_Messages (conversation_id, sender, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
-
-            $stmt = sqlsrv_query($mssql, $sql, [$cid, $fullname, $msg, $attachmentPath, $attachmentName, $replyTo]);
-            if ($stmt === false) {
-                $errors = ['error' => 'Database error occurred'];
-                $errorDetails = '';
-                if ($errors) {
-                    foreach ($errors as $error) {
-                        $errorDetails .= "SQLSTATE: " . $error['SQLSTATE'] . " Code: " . $error['code'] . " Message: " . $error['message'] . " ";
-                    }
-                }
-                json_out(['ok' => false, 'error' => 'DB Insert Failed: ' . $errorDetails]);
+            $sql = "INSERT INTO \"prtl_Messages\" (conversation_id, sender, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+            $stmt = $conn->prepare($sql);
+            if ($stmt->execute([$cid, $fullname, $msg, $attachmentPath, $attachmentName, $replyTo])) {
+                json_out(['ok' => true]);
+            } else {
+                json_out(['ok' => false, 'error' => 'DB Insert Failed']);
             }
-            json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid message']);
     }
 
-    // --- Fetch DM prtl_Messages ---
+    // --- Fetch DM Messages ---
     if ($action === 'fetch_dm_messages') {
         $other = trim($_POST['other'] ?? '');
         $rows = [];
         if ($other !== '') {
             $sql = "SELECT m.id, m.sender, m.message, m.attachment_path, m.attachment_name, m.sent_at, m.reply_to_id,
-                           e.EmployeeID,
+                           e.\"EmployeeID\",
                            r.sender as reply_sender, r.message as reply_text
-                    FROM prtl_Messages m
-                    LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
-                    LEFT JOIN prtl_Messages r ON m.reply_to_id = r.id
-                    WHERE (REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(m.receiver)), '  ', ' '), '  ', ' ') = ?) 
-                       OR (REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(m.receiver)), '  ', ' '), '  ', ' ') = ?) 
+                    FROM \"prtl_Messages\" m
+                    LEFT JOIN \"prtl_lrn_master_list\" e ON REPLACE(REPLACE(\"FirstName\" || ' ' || \"LastName\", '  ', ' '), '  ', ' ') = REPLACE(REPLACE(m.sender, '  ', ' '), '  ', ' ')
+                    LEFT JOIN \"prtl_Messages\" r ON m.reply_to_id = r.id
+                    WHERE (REPLACE(REPLACE(m.sender, '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(m.receiver, '  ', ' '), '  ', ' ') = ?) 
+                       OR (REPLACE(REPLACE(m.sender, '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(m.receiver, '  ', ' '), '  ', ' ') = ?) 
                     ORDER BY m.sent_at ASC";
-            $st = sqlsrv_query($mssql, $sql, [$fullname, $other, $other, $fullname]);
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$fullname, $other, $other, $fullname]);
 
-            if ($st) {
-                while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            if ($stmt) {
+                while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $rows[] = [
                         'id' => (int) $r['id'],
                         'sender' => $r['sender'],
                         'message' => $r['message'],
                         'attachment_path' => $r['attachment_path'],
                         'attachment_name' => $r['attachment_name'],
-                        'sent_at' => ($r['sent_at'] instanceof DateTime) ? $r['sent_at']->format('Y-m-d H:i') : '',
+                        'sent_at' => $r['sent_at'] ? date('Y-m-d H:i', strtotime($r['sent_at'])) : '',
                         'photo' => resolve_photo_url($r['EmployeeID'] ?? ''),
                         'reply_to' => $r['reply_to_id'],
                         'reply_sender' => $r['reply_sender'],
@@ -578,7 +481,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         json_out(['ok' => true, 'messages' => $rows]);
     }
 
-    // --- Update GC Settings (Name/Photo) ---
+    // --- Update GC Settings ---
     if ($action === 'update_gc') {
         $cid = (int) ($_POST['cid'] ?? 0);
         $newName = trim($_POST['name'] ?? '');
@@ -600,9 +503,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         if ($newName !== '') {
-            $sql = "UPDATE prtl_Conversations SET name = ? " . ($photoPath ? ", photo_path = ?" : "") . " WHERE id = ?";
+            $sql = "UPDATE \"prtl_Conversations\" SET name = ? " . ($photoPath ? ", photo_path = ?" : "") . " WHERE id = ?";
             $params = $photoPath ? [$newName, $photoPath, $cid] : [$newName, $cid];
-            sqlsrv_query($mssql, $sql, $params);
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Name required']);
@@ -614,11 +518,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $name = trim($_POST['name'] ?? '');
         if ($cid > 0 && $name !== '') {
             // Check if already member
-            $ck = sqlsrv_query($mssql, "SELECT 1 FROM prtl_ConversationParticipants WHERE conversation_id=? AND REPLACE(REPLACE(LTRIM(RTRIM(participant_name)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(?)), '  ', ' '), '  ', ' ')", [$cid, $name]);
-            if ($ck && sqlsrv_fetch_array($ck)) {
+            $ckSql = "SELECT 1 FROM \"prtl_ConversationParticipants\" WHERE conversation_id=? AND REPLACE(REPLACE(participant_name, '  ', ' '), '  ', ' ') = REPLACE(REPLACE(?, '  ', ' '), '  ', ' ')";
+            $ckStmt = $conn->prepare($ckSql);
+            $ckStmt->execute([$cid, $name]);
+            if ($ckStmt->fetch()) {
                 json_out(['ok' => false, 'error' => 'Already a member']);
             }
-            sqlsrv_query($mssql, "INSERT INTO prtl_ConversationParticipants (conversation_id, participant_name) VALUES (?, ?)", [$cid, $name]);
+            $insSql = "INSERT INTO \"prtl_ConversationParticipants\" (conversation_id, participant_name) VALUES (?, ?)";
+            $insStmt = $conn->prepare($insSql);
+            $insStmt->execute([$cid, $name]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid request']);
@@ -629,7 +537,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cid = (int) ($_POST['cid'] ?? 0);
         $name = trim($_POST['name'] ?? '');
         if ($cid > 0 && $name !== '') {
-            sqlsrv_query($mssql, "DELETE FROM prtl_ConversationParticipants WHERE conversation_id=? AND REPLACE(REPLACE(LTRIM(RTRIM(participant_name)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(?)), '  ', ' '), '  ', ' ')", [$cid, $name]);
+            $delSql = "DELETE FROM \"prtl_ConversationParticipants\" WHERE conversation_id=? AND REPLACE(REPLACE(participant_name, '  ', ' '), '  ', ' ') = REPLACE(REPLACE(?, '  ', ' '), '  ', ' ')";
+            $delStmt = $conn->prepare($delSql);
+            $delStmt->execute([$cid, $name]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid request']);
@@ -639,7 +549,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'send_dm') {
         $to = trim($_POST['to'] ?? '');
         $msg = trim($_POST['message'] ?? '');
-        // handle file upload if present
         $attachmentPath = null;
         $attachmentName = null;
 
@@ -668,13 +577,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($to !== '' && ($msg !== '' || $attachmentPath)) {
             $replyTo = !empty($_POST['reply_to']) ? (int) $_POST['reply_to'] : null;
-            $sql = "INSERT INTO prtl_Messages (sender, receiver, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
-
-            $stmt = sqlsrv_query($mssql, $sql, [$fullname, $to, $msg, $attachmentPath, $attachmentName, $replyTo]);
-            if ($stmt === false) {
+            $sql = "INSERT INTO \"prtl_Messages\" (sender, receiver, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+            $stmt = $conn->prepare($sql);
+            if ($stmt->execute([$fullname, $to, $msg, $attachmentPath, $attachmentName, $replyTo])) {
+                json_out(['ok' => true]);
+            } else {
                 json_out(['ok' => false, 'error' => 'DB Insert Failed']);
             }
-            json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid DM']);
     }
@@ -685,25 +594,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $emoji = trim($_POST['emoji'] ?? '');
 
         if ($msgId > 0) {
-            $stmt = sqlsrv_query($mssql, "SELECT message FROM prtl_Messages WHERE id = ?", [$msgId]);
-            if ($stmt && $row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $selSql = "SELECT message FROM \"prtl_Messages\" WHERE id = ?";
+            $selStmt = $conn->prepare($selSql);
+            $selStmt->execute([$msgId]);
+            if ($row = $selStmt->fetch(PDO::FETCH_ASSOC)) {
                 $msgText = $row['message'] ?? '';
 
-                // Check what the current reaction is
                 $currentReaction = '';
                 if (preg_match('/ \[React:(.*?)\]$/s', $msgText, $matches)) {
                     $currentReaction = $matches[1];
                 }
 
-                // Remove existing reaction if any
                 $msgText = preg_replace('/ \[React:.*?\]$/s', '', $msgText);
 
-                // Append new reaction only if it's not simply toggling off the exact same one
                 if ($emoji !== '' && $emoji !== $currentReaction) {
                     $msgText .= ' [React:' . $emoji . ']';
                 }
 
-                sqlsrv_query($mssql, "UPDATE prtl_Messages SET message = ? WHERE id = ?", [$msgText, $msgId]);
+                $updSql = "UPDATE \"prtl_Messages\" SET message = ? WHERE id = ?";
+                $updStmt = $conn->prepare($updSql);
+                $updStmt->execute([$msgText, $msgId]);
                 json_out(['ok' => true]);
             }
         }
@@ -715,12 +625,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $owner = trim($_POST['owner'] ?? '');
         $emoji = trim($_POST['emoji'] ?? '');
         if ($owner !== '') {
-            $sql = "MERGE prtl_StoryViews AS t
-                    USING (SELECT ? AS viewer, ? AS owner) AS s
-                    ON t.viewer_name = s.viewer AND t.story_owner_name = s.owner
-                    WHEN MATCHED THEN UPDATE SET reaction = ?, last_viewed_at = GETDATE()
-                    WHEN NOT MATCHED THEN INSERT (viewer_name, story_owner_name, reaction, last_viewed_at) VALUES (s.viewer, s.owner, ?, GETDATE());";
-            sqlsrv_query($mssql, $sql, [$fullname, $owner, $emoji, $emoji]);
+            $sql = "INSERT INTO \"prtl_StoryViews\" (viewer_name, story_owner_name, reaction, last_viewed_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT (viewer_name, story_owner_name) DO UPDATE SET reaction = EXCLUDED.reaction, last_viewed_at = CURRENT_TIMESTAMP";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$fullname, $owner, $emoji]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid owner']);
@@ -730,8 +638,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'delete_message') {
         $msgId = (int) ($_POST['msg_id'] ?? 0);
         if ($msgId > 0) {
-            $sql = "DELETE FROM prtl_Messages WHERE id = ? AND REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ?";
-            sqlsrv_query($mssql, $sql, [$msgId, $fullname]);
+            $sql = "DELETE FROM \"prtl_Messages\" WHERE id = ? AND REPLACE(sender, '  ', ' ') = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$msgId, $fullname]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid message ID']);
@@ -743,13 +652,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $other = trim($_POST['other'] ?? '');
 
         if ($cid > 0) {
-            sqlsrv_query($mssql, "DELETE FROM prtl_Messages WHERE conversation_id = ?", [$cid]);
-            sqlsrv_query($mssql, "DELETE FROM prtl_ConversationParticipants WHERE conversation_id = ?", [$cid]);
-            sqlsrv_query($mssql, "DELETE FROM prtl_Conversations WHERE id = ?", [$cid]);
+            $conn->prepare("DELETE FROM \"prtl_Messages\" WHERE conversation_id = ?")->execute([$cid]);
+            $conn->prepare("DELETE FROM \"prtl_ConversationParticipants\" WHERE conversation_id = ?")->execute([$cid]);
+            $conn->prepare("DELETE FROM \"prtl_Conversations\" WHERE id = ?")->execute([$cid]);
             json_out(['ok' => true]);
         } elseif ($other !== '') {
-            $sql = "DELETE FROM prtl_Messages WHERE (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?) OR (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?)";
-            sqlsrv_query($mssql, $sql, [$fullname, $other, $other, $fullname]);
+            $sql = "DELETE FROM \"prtl_Messages\" WHERE (REPLACE(sender, '  ', ' ') = ? AND REPLACE(receiver, '  ', ' ') = ?) OR (REPLACE(sender, '  ', ' ') = ? AND REPLACE(receiver, '  ', ' ') = ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$fullname, $other, $other, $fullname]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid conversation parameters']);

@@ -17,11 +17,10 @@ if (!$userId) {
     exit;
 }
 
-$query = "DELETE FROM prtl_lrnph_users WHERE user_id = ?";
+$query = "DELETE FROM \"prtl_lrnph_users\" WHERE user_id = ?";
 $stmt = $conn->prepare($query);
-    $stmt->execute(array($userId));
 
-if ($stmt) {
+if ($stmt->execute(array($userId))) {
     echo json_encode(['success' => true]);
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to delete user.']);

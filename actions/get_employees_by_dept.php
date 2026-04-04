@@ -20,18 +20,17 @@ $dept = $_GET['department'];
 if (isset($conn) && $conn) {
     // Query Master List for active employees in department
     // Sort by First Name
-    $sql = "SELECT BiometricsID as id, FirstName, LastName 
-            FROM prtl_lrn_master_list 
-            WHERE Department = ? AND isActive = 1 
-            ORDER BY FirstName ASC";
+    $sql = "SELECT \"BiometricsID\" as id, \"FirstName\", \"LastName\" 
+            FROM \"prtl_lrn_master_list\" 
+            WHERE \"Department\" = ? AND \"isActive\" = true 
+            ORDER BY \"FirstName\" ASC";
 
     $params = array($dept);
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
 
-    if ($stmt === false) {
-        // Return SQL error as JSON
-        echo json_encode(['error' => 'Query failed', 'details' => ['error' => 'Database error occurred']]);
+    if (!$stmt) {
+        echo json_encode(['error' => 'Query failed']);
         exit;
     }
 

@@ -22,11 +22,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // 1. Remove existing permissions for this user
-    $deleteSql = "DELETE FROM prtl_portal_user_access WHERE username = ?";
+    $deleteSql = "DELETE FROM \"prtl_portal_user_access\" WHERE username = ?";
     $deleteStmt = $conn->prepare($deleteSql);
-    $deleteStmt->execute(array($username));
 
-    if ($deleteStmt === false) {
+    if (!$deleteStmt->execute(array($username))) {
         header("Location: ../admin.php?page=user_management&error=delete_failed");
         exit();
     }
@@ -34,15 +33,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 2. Insert new permissions
     if (!empty($permissions)) {
         // Updated column name from page_code to perm_key
-        $insertSql = "INSERT INTO prtl_portal_user_access (username, perm_key, granted_by) VALUES (?, ?, ?)";
+        $insertSql = "INSERT INTO \"prtl_portal_user_access\" (username, perm_key, granted_by, date_granted) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+        $insertStmt = $conn->prepare($insertSql);
 
         foreach ($permissions as $code) {
-            $insertStmt = $conn->prepare($insertSql);
-    $insertStmt->execute(array($username, $code, $superAdmin));
-            if (!$insertStmt) {
-                // Log error but continue
-                // error_log(print_r(['error' => 'Database error occurred'], true));
-            }
+            $insertStmt->execute(array($username, $code, $superAdmin));
         }
     }
 

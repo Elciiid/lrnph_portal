@@ -12,24 +12,24 @@ header('Content-Type: application/json');
 if (isset($conn) && $conn) {
     $search = $_GET['search'] ?? '';
 
-    $sql = "SELECT BiometricsID as id, FirstName, LastName, Department
-            FROM prtl_lrn_master_list 
-            WHERE isActive = 1 ";
+    $sql = "SELECT \"BiometricsID\" as id, \"FirstName\", \"LastName\", \"Department\"
+            FROM \"prtl_lrn_master_list\" 
+            WHERE \"isActive\" = true ";
 
     $params = [];
     if (!empty($search)) {
-        $sql .= "AND (FirstName LIKE ? OR LastName LIKE ? OR (FirstName + ' ' + LastName) LIKE ?) ";
+        $sql .= "AND (\"FirstName\" ILIKE ? OR \"LastName\" ILIKE ? OR (\"FirstName\" || ' ' || \"LastName\") ILIKE ?) ";
         $searchParam = "%$search%";
         $params = [$searchParam, $searchParam, $searchParam];
     }
 
-    $sql .= "ORDER BY FirstName ASC";
+    $sql .= "ORDER BY \"FirstName\" ASC";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
 
-    if ($stmt === false) {
-        echo json_encode(['error' => 'Query failed', 'details' => ['error' => 'Database error occurred']]);
+    if (!$stmt) {
+        echo json_encode(['error' => 'Query failed']);
         exit;
     }
 

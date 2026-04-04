@@ -17,7 +17,7 @@ $page = $_GET['page'] ?? 'dashboard';
 $userPerms = [];
 if (isset($conn) && isset($_SESSION['username'])) {
     // Updated to perm_key
-    $permSql = "SELECT perm_key FROM prtl_portal_user_access WHERE username = ?";
+    $permSql = "SELECT perm_key FROM \"prtl_portal_user_access\" WHERE username = ?";
     $permStmt = $conn->prepare($permSql);
     $permStmt->execute([$_SESSION['username']]);
     while ($pRow = $permStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -40,13 +40,13 @@ $activeAnnouncements = 0;
 
 if (isset($conn)) {
     // Count Applications
-    $appCountRes = $conn->query("SELECT COUNT(*) as total FROM prtl_portal_apps");
+    $appCountRes = $conn->query("SELECT COUNT(*) as total FROM \"prtl_portal_apps\"");
     if ($appCountRes && $row = $appCountRes->fetch(PDO::FETCH_ASSOC)) {
         $totalApps = $row['total'];
     }
 
     // Count Announcements
-    $annCountRes = $conn->query("SELECT COUNT(*) as total FROM prtl_portal_announcements WHERE is_active = 1");
+    $annCountRes = $conn->query("SELECT COUNT(*) as total FROM \"prtl_portal_announcements\" WHERE is_active = 1");
     if ($annCountRes && $row = $annCountRes->fetch(PDO::FETCH_ASSOC)) {
         $activeAnnouncements = $row['total'];
     }
@@ -74,7 +74,7 @@ if (isset($conn)) {
             // Fetch Creator (Facilitator) Name
             $creatorName = "Unknown";
             if (!empty($row['facilitator'])) {
-                $creatorSql = "SELECT \"FirstName\", \"LastName\" FROM prtl_lrn_master_list WHERE \"BiometricsID\" = ?";
+                $creatorSql = "SELECT \"FirstName\", \"LastName\" FROM \"prtl_lrn_master_list\" WHERE \"BiometricsID\" = ?";
                 $creatorStmt = $conn->prepare($creatorSql);
                 $creatorStmt->execute([$row['facilitator']]);
                 if ($cRow = $creatorStmt->fetch(PDO::FETCH_ASSOC)) {

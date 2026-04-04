@@ -16,19 +16,18 @@ function adjustAppSortOrder($conn, $newSortOrder, $existingAppId = null)
     $stmt = $conn->prepare($checkSql);
     $stmt->execute($params);
 
-    if ($stmt && sqlsrv_has_rows($stmt)) {
-        // Recursive shift: Move existing app at this position down
-        // 1. Get the conflicting app
-        $conflictApp = $stmt->fetch(PDO::FETCH_ASSOC);
+    $conflictApp = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($conflictApp) {
         $conflictId = $conflictApp['id'];
 
         // 2. Recursive call: First ensure the NEXT spot is free
         adjustAppSortOrder($conn, $newSortOrder + 1, $conflictId);
 
         // 3. Now move the conflicting app to newSortOrder + 1
-        $updateSql = "UPDATE prtl_portal_apps SET sort_order = ? WHERE id = ?";
+        $updateSql = "UPDATE \"prtl_portal_apps\" SET sort_order = ? WHERE \"id\" = ?";
         $updateParams = array($newSortOrder + 1, $conflictId);
-        sqlsrv_query($conn, $updateSql, $updateParams);
+        $updateStmt = $conn->prepare($updateSql);
+        $updateStmt->execute($updateParams);
     }
 }
 ?>

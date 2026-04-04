@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/db.php';
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
 
-    $query = "DELETE FROM prtl_portal_apps WHERE id = ?";
+    $query = "DELETE FROM \"prtl_portal_apps\" WHERE id = ?";
     $params = array($id);
 
     $stmt = $conn->prepare($query);

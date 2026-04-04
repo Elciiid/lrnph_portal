@@ -128,6 +128,12 @@ CREATE TABLE IF NOT EXISTS "prtl_AP_Categories" (
     category_name VARCHAR(100) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "prtl_AP_Venues" (
+    venue_id SERIAL PRIMARY KEY,
+    venue_name VARCHAR(100) NOT NULL,
+    is_active INT DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS "prtl_UserPresence" (
     username VARCHAR(255) PRIMARY KEY,
     status VARCHAR(50) DEFAULT 'offline',
@@ -184,4 +190,48 @@ CREATE TABLE IF NOT EXISTS "prtl_CallSignals" (
     status VARCHAR(50),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. E-Meals Module
+CREATE TABLE IF NOT EXISTS "prtl_fcl_access" (
+    staff_code VARCHAR(50) PRIMARY KEY,
+    employee_name VARCHAR(255),
+    biometric VARCHAR(50),
+    department VARCHAR(100),
+    remarks TEXT,
+    served INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS "prtl_emeals_plotted_schedule" (
+    bio_id VARCHAR(50),
+    plotted_date DATE,
+    full_name VARCHAR(255),
+    time_in TIME,
+    time_out TIME,
+    schedule VARCHAR(255),
+    overtime INT DEFAULT 0,
+    PRIMARY KEY (bio_id, plotted_date)
+);
+
+CREATE TABLE IF NOT EXISTS "prtl_emeals_monitor" (
+    monitor_id SERIAL PRIMARY KEY,
+    emp_id VARCHAR(50),
+    full_name VARCHAR(255),
+    log_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    log_time TIME,
+    device_name VARCHAR(100),
+    meal_1 INT DEFAULT 0,
+    meal_1_datetime TIMESTAMP,
+    meal_2 INT DEFAULT 0,
+    meal_2_datetime TIMESTAMP,
+    meal_3 INT DEFAULT 0,
+    meal_3_datetime TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "prtl_app_ojt_employees" (
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(255),
+    department VARCHAR(100),
+    employee_id VARCHAR(50) UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );

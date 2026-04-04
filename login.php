@@ -9,8 +9,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (!empty($username) && !empty($password)) {
         $query = "SELECT lu.username, lu.password, lu.status, CONCAT(ml.\"FirstName\", ' ', ml.\"LastName\") as fullname, ml.\"EmployeeID\", ml.\"PositionTitle\", ml.\"Department\", ml.\"isActive\" 
-                  FROM prtl_lrnph_users lu 
-                  LEFT JOIN prtl_lrn_master_list ml ON lu.username = ml.\"BiometricsID\" 
+                  FROM \"prtl_lrnph_users\" lu 
+                  LEFT JOIN \"prtl_lrn_master_list\" ml ON lu.username = ml.\"BiometricsID\" 
                   WHERE lu.username = ?";
         
         try {

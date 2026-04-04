@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         adjustAppSortOrder($conn, $sort_order, $id);
     }
 
-    $sql = "UPDATE prtl_portal_apps SET name = ?, url = ?, icon = ?, is_active = ?, sort_order = ? WHERE id = ?";
+    $sql = "UPDATE \"prtl_portal_apps\" SET name = ?, url = ?, icon = ?, is_active = ?, sort_order = ? WHERE id = ?";
     $params = array($name, $url, $icon, $is_active, $sort_order, $id);
 
     $stmt = $conn->prepare($sql);

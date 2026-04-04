@@ -3,7 +3,7 @@
 
 // Configuration for dynamic access control (Same as Sidebar)
 // Fetch Core Access from Database
-$coreAccessQuery = "SELECT * FROM prtl_portal_CoreAccess ORDER BY ID ASC";
+$coreAccessQuery = "SELECT * FROM \"prtl_portal_CoreAccess\" ORDER BY \"ID\" ASC";
 $coreAccessStmt = $conn->query($coreAccessQuery);
 $coreAccessList = [];
 if ($coreAccessStmt) {
@@ -13,13 +13,13 @@ if ($coreAccessStmt) {
 }
 
 // Fetch App Modules from Database
-$appModulesQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY ID ASC";
+$appModulesQuery = "SELECT * FROM \"prtl_portal_AppModules\" ORDER BY \"ID\" ASC";
 $appModulesStmt = $conn->query($appModulesQuery);
 $menuConfig = [];
 
 // Fetch Module Icons dynamically
 $iconMap = [];
-$modIconsQuery = "SELECT module_name, module_icon FROM prtl_portal_Modules";
+$modIconsQuery = "SELECT module_name, module_icon FROM \"prtl_portal_Modules\"";
 $modIconsStmt = $conn->query($modIconsQuery);
 if ($modIconsStmt) {
     while ($mRow = $modIconsStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -63,11 +63,11 @@ if ($appModulesStmt) {
 // We fetch users first, then group them in PHP
 // We fetch users first, then group them in PHP
 
-$usersQuery = "SELECT lu.username, lu.status, lu.role, ml.FirstName, ml.LastName, ml.Department, ml.PositionTitle, ml.EmployeeID
-               FROM prtl_lrnph_users lu
-               INNER JOIN prtl_lrn_master_list ml ON lu.username = ml.BiometricsID
-               WHERE ml.isActive = 1
-               ORDER BY ml.LastName ASC";
+$usersQuery = "SELECT lu.username, lu.status, lu.role, ml.\"FirstName\", ml.\"LastName\", ml.\"Department\", ml.\"PositionTitle\", ml.\"EmployeeID\"
+               FROM \"prtl_lrnph_users\" lu
+               INNER JOIN \"prtl_lrn_master_list\" ml ON lu.username = ml.\"BiometricsID\"
+               WHERE ml.\"isActive\" = true
+               ORDER BY ml.\"LastName\" ASC";
 $usersStmt = $conn->query($usersQuery);
 
 $groupedUsers = [];
@@ -93,7 +93,7 @@ if ($usersStmt) {
 ksort($groupedUsers); // Sort departments alphabetically
 
 // Fetch permissions and merge
-$allPermsQuery = "SELECT username, perm_key FROM prtl_portal_user_access";
+$allPermsQuery = "SELECT username, perm_key FROM \"prtl_portal_user_access\"";
 $allPermsStmt = $conn->query($allPermsQuery);
 $userPermissions = [];
 if ($allPermsStmt) {

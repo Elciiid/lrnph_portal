@@ -27,15 +27,13 @@ if (!$planId) {
 }
 
 if (isset($conn)) {
-    // Delete from prtl_AP_Meetings (Assuming cascading delete or manual delete of attendees/agenda if FK not set)
-    // To be safe, let's delete children first if no cascade
-
-    sqlsrv_begin_transaction($conn);
     try {
+        $conn->beginTransaction();
+
         // 1. Check Ownership
-        $checkSql = "SELECT facilitator FROM prtl_AP_Meetings WHERE meeting_id = ?";
+        $checkSql = "SELECT facilitator FROM \"prtl_AP_Meetings\" WHERE meeting_id = ?";
         $checkStmt = $conn->prepare($checkSql);
-    $checkStmt->execute(array($planId));
+        $checkStmt->execute(array($planId));
         if ($checkStmt && $row = $checkStmt->fetch(PDO::FETCH_ASSOC)) {
             if ($row['facilitator'] != $currentUserId) {
                 throw new Exception("Unauthorized: You are not the facilitator.");
@@ -45,32 +43,22 @@ if (isset($conn)) {
         }
 
         // 2. Delete Agendas
-        $delAg = "DELETE FROM prtl_AP_MeetingAgenda WHERE meeting_id = ?";
+        $delAg = "DELETE FROM \"prtl_AP_MeetingAgenda\" WHERE meeting_id = ?";
         $stmtAg = $conn->prepare($delAg);
-    $stmtAg->execute(array($planId));
-        if ($stmtAg === false) {
-            throw new Exception("Failed to delete meeting agenda items.");
-        }
+        $stmtAg->execute(array($planId));
 
         // 3. Delete Attendees
-        $delAtt = "DELETE FROM prtl_AP_Attendees WHERE meeting_id = ?";
+        $delAtt = "DELETE FROM \"prtl_AP_Attendees\" WHERE meeting_id = ?";
         $stmtAtt = $conn->prepare($delAtt);
-    $stmtAtt->execute(array($planId));
-        if ($stmtAtt === false) {
-            throw new Exception("Failed to delete meeting attendees.");
-        }
+        $stmtAtt->execute(array($planId));
 
         // 4. Delete Meeting
-        $query = "DELETE FROM prtl_AP_Meetings WHERE meeting_id = ? AND facilitator = ?";
+        $query = "DELETE FROM \"prtl_AP_Meetings\" WHERE meeting_id = ? AND facilitator = ?";
         $params = array($planId, $currentUserId);
         $stmt = $conn->prepare($query);
-    $stmt->execute($params);
+        $stmt->execute($params);
 
-        if ($stmt === false) {
-            throw new Exception("Failed to delete meeting record.");
-        }
-
-        sqlsrv_commit($conn);
+        $conn->commit();
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             header("Location: ../admin.php?page=planner&msg=deleted");
@@ -79,7 +67,7 @@ if (isset($conn)) {
         }
 
     } catch (Exception $e) {
-        sqlsrv_rollback($conn);
+        $conn->rollBack();
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             header("Location: ../admin.php?error=delete_failed");
         } else {

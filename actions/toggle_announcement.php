@@ -5,7 +5,7 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
     $id = $_GET['id'];
     $status = $_GET['status']; // 1 or 0
 
-    $sql = "UPDATE prtl_portal_announcements SET is_active = ? WHERE id = ?";
+    $sql = "UPDATE \"prtl_portal_announcements\" SET is_active = ? WHERE id = ?";
     $params = [$status, $id];
 
     $stmt = $conn->prepare($sql);

@@ -38,27 +38,21 @@ try {
     }
 
     $evtQuery = "SELECT ps.meeting_id, ps.meeting_name, ps.venue, ps.meeting_date, ps.start_time, ps.end_time, ps.facilitator, ps.custom_category_text,
-                     ml.FirstName as CreatorFirst, ml.LastName as CreatorLast,
+                     ml.\"FirstName\" as CreatorFirst, ml.\"LastName\" as CreatorLast,
                      cat.category_name,
-                     (SELECT COUNT(*) FROM prtl_AP_Attendees att 
+                     (SELECT COUNT(*) FROM \"prtl_AP_Attendees\" att 
                       WHERE att.meeting_id = ps.meeting_id AND att.employee_id = ?) as IsAttendee
-                 FROM prtl_AP_Meetings ps
-                 LEFT JOIN prtl_lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
-                 LEFT JOIN prtl_AP_Categories cat ON ps.category_id = cat.category_id
-                 WHERE ps.meeting_date >= ? AND ps.meeting_date <= ?
+                 FROM \"prtl_AP_Meetings\" ps
+                 LEFT JOIN \"prtl_lrn_master_list\" ml ON ps.facilitator = ml.\"BiometricsID\"
+                 LEFT JOIN \"prtl_AP_Categories\" cat ON ps.category_id = cat.category_id
+                 WHERE ps.meeting_date >= ?::date AND ps.meeting_date <= ?::date
                  ORDER BY ps.start_time ASC";
 
     $evtStmt = $conn->prepare($evtQuery);
     $evtStmt->execute(array($currentUserId, $startDate, $endDate));
 
-    if ($evtStmt === false) {
-        $errs = ['error' => 'Database error occurred'];
-        $msg = "SQL Query Failed: ";
-        if ($errs) {
-            foreach ($errs as $e)
-                $msg .= "[" . $e['code'] . "] " . $e['message'] . " ";
-        }
-        throw new Exception($msg);
+    if (!$evtStmt) {
+        throw new Exception('Database query failed');
     }
 
     while ($row = $evtStmt->fetch(PDO::FETCH_ASSOC)) {

@@ -10,7 +10,7 @@ if (isset($_GET['id'])) {
     // $params = [$id, $userId];
 
     // For now, allow any admin to delete
-    $sql = "DELETE FROM prtl_portal_announcements WHERE id = ?";
+    $sql = "DELETE FROM \"prtl_portal_announcements\" WHERE id = ?";
     $params = [$id];
 
     $stmt = $conn->prepare($sql);

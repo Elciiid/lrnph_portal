@@ -8,7 +8,7 @@ if ($id) {
     // Simply fetch from prtl_AP_Attendees
     // We can return employee_id if present, or null
     $sql = "SELECT employee_id, attendee_name 
-            FROM prtl_AP_Attendees
+            FROM \"prtl_AP_Attendees\"
             WHERE meeting_id = ? 
             ORDER BY attendee_name ASC";
 

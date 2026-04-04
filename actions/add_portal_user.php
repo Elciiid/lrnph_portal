@@ -11,17 +11,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Check if user already exists
-    $checkSql = "SELECT username FROM prtl_lrnph_users WHERE username = ?";
+    $checkSql = "SELECT username FROM \"prtl_lrnph_users\" WHERE username = ?";
     $checkStmt = $conn->prepare($checkSql);
     $checkStmt->execute(array($username));
 
-    if ($checkStmt === false) {
-        // Debug: print_r(['error' => 'Database error occurred'], true);
+    if (!$checkStmt) {
         header("Location: ../admin.php?page=user_management&error=db_error");
         exit();
     }
 
-    if (sqlsrv_has_rows($checkStmt)) {
+    if ($checkStmt->fetch()) {
         header("Location: ../admin.php?page=user_management&error=user_exists");
         exit();
     }
@@ -30,14 +29,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
     // Insert user
-    $insertSql = "INSERT INTO prtl_lrnph_users (username, password) VALUES (?, ?)";
+    $insertSql = "INSERT INTO \"prtl_lrnph_users\" (username, password, status, created_at) VALUES (?, ?, 'active', CURRENT_TIMESTAMP)";
     $insertStmt = $conn->prepare($insertSql);
-    $insertStmt->execute(array($username, $hashedPassword));
 
-    if ($insertStmt) {
+    if ($insertStmt->execute(array($username, $hashedPassword))) {
         header("Location: ../admin.php?page=user_management&success=user_added");
     } else {
-        // die(print_r(['error' => 'Database error occurred'], true)); // Debug
         header("Location: ../admin.php?page=user_management&error=insert_failed");
     }
     exit();

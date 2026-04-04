@@ -16,8 +16,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($action === 'delete') {
         $id = $_POST['id'];
-        $sql = "DELETE FROM prtl_portal_CoreAccess WHERE ID = ?";
-        if (sqlsrv_query($conn, $sql, array($id))) {
+        $sql = "DELETE FROM \"prtl_portal_CoreAccess\" WHERE \"ID\" = ?";
+        $stmt = $conn->prepare($sql);
+        if ($stmt->execute(array($id))) {
             header("Location: ../admin.php?page=settings&success=deleted");
         } else {
             header("Location: ../admin.php?page=settings&error=delete_failed");
@@ -27,10 +28,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $perm = $_POST['perm_key'];
         $desc = $_POST['description'];
 
-        $sql = "INSERT INTO prtl_portal_CoreAccess (access_name, perm_key, description, added_by, date_added) VALUES (?, ?, ?, ?, ?)";
-        $params = array($name, $perm, $desc, $admin, $date);
+        $sql = "INSERT INTO \"prtl_portal_CoreAccess\" (access_name, perm_key, description, added_by, date_added) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
+        $params = array($name, $perm, $desc, $admin);
+        $stmt = $conn->prepare($sql);
 
-        if (sqlsrv_query($conn, $sql, $params)) {
+        if ($stmt->execute($params)) {
             header("Location: ../admin.php?page=settings&success=added");
         } else {
             header("Location: ../admin.php?page=settings&error=add_failed");
@@ -41,10 +43,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $perm = $_POST['perm_key'];
         $desc = $_POST['description'];
 
-        $sql = "UPDATE prtl_portal_CoreAccess SET access_name = ?, perm_key = ?, description = ? WHERE ID = ?";
+        $sql = "UPDATE \"prtl_portal_CoreAccess\" SET access_name = ?, perm_key = ?, description = ? WHERE \"ID\" = ?";
         $params = array($name, $perm, $desc, $id);
+        $stmt = $conn->prepare($sql);
 
-        if (sqlsrv_query($conn, $sql, $params)) {
+        if ($stmt->execute($params)) {
             header("Location: ../admin.php?page=settings&success=updated");
         } else {
             header("Location: ../admin.php?page=settings&error=update_failed");

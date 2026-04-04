@@ -17,11 +17,10 @@ if (isset($_GET['username']) && isset($_GET['status'])) {
         exit();
     }
 
-    $sql = "UPDATE prtl_lrnph_users SET status = ? WHERE username = ?";
+    $sql = "UPDATE \"prtl_lrnph_users\" SET status = ? WHERE username = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->execute(array($newStatus, $username));
 
-    if ($stmt) {
+    if ($stmt->execute(array($newStatus, $username))) {
         header("Location: ../admin.php?page=user_management&success=status_updated");
     } else {
         header("Location: ../admin.php?page=user_management&error=update_failed");

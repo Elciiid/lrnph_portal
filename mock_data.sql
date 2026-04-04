@@ -124,3 +124,34 @@ INSERT INTO "prtl_CallSignals" (caller_name, receiver_name, status) VALUES
 INSERT INTO "prtl_StoryViews" (story_id, viewer_name, reaction) VALUES 
 (101, 'staff', 'like'),
 (101, 'admin', 'heart');
+
+-- 14. Mock Venues
+INSERT INTO "prtl_AP_Venues" (venue_name, is_active) VALUES
+('Training Room A', 1),
+('Conference Room B', 1),
+('Executive Lounge', 1),
+('Common Area', 1),
+('Activity Center', 1),
+('HR Office', 1),
+('IT Hub', 1),
+('Meeting Room 1', 1),
+('Meeting Room 2', 1),
+('Roof Deck', 1);
+
+-- E-Meals Mock Data
+INSERT INTO "prtl_fcl_access" (staff_code, employee_name, biometric, department, remarks, served) VALUES
+('FCL001', 'Alice Johnson', '1001', 'IT', 'Regular FCL access', 0),
+('FCL002', 'Bob Smith', '1002', 'HR', 'Special guest', 1);
+
+INSERT INTO "prtl_emeals_plotted_schedule" (bio_id, plotted_date, full_name, time_in, time_out, schedule, overtime) VALUES
+('1001', CURRENT_DATE, 'Alice Johnson', '08:00:00', '17:00:00', '08:00 - 17:00', 0),
+('1002', CURRENT_DATE, 'Bob Smith', '09:00:00', '18:00:00', '09:00 - 18:00', 0);
+
+INSERT INTO "prtl_emeals_monitor" (emp_id, full_name, log_date, log_time, device_name, meal_1, meal_1_datetime, meal_2, meal_2_datetime) VALUES
+('1001', 'Alice Johnson', CURRENT_TIMESTAMP, '08:05:00', 'Main Entrance', 1, CURRENT_TIMESTAMP, 0, NULL),
+('1002', 'Bob Smith', CURRENT_TIMESTAMP, '09:10:00', 'Service Door', 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
+
+-- OJT Employees Mock Data
+INSERT INTO "prtl_app_ojt_employees" (full_name, department, employee_id) VALUES
+('Jane Doe', 'Digital Marketing', 'OJT001'),
+('John Smith', 'Logistics', 'OJT002');

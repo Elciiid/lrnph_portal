@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 
-    $query = "INSERT INTO prtl_portal_apps (name, url, icon, is_active, sort_order) VALUES (?, ?, ?, ?, ?)";
+    $query = "INSERT INTO \"prtl_portal_apps\" (name, url, icon, is_active, sort_order) VALUES (?, ?, ?, ?, ?)";
     $params = array($name, $url, $icon, $isActive, $sort_order);
 
     $stmt = $conn->prepare($query);

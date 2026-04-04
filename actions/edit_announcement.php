@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    $sql = "UPDATE prtl_portal_announcements SET title = ?, description = ?, is_active = ?, image_url = ? WHERE id = ?";
+    $sql = "UPDATE \"prtl_portal_announcements\" SET title = ?, description = ?, is_active = ?, image_url = ? WHERE id = ?";
     $params = array($title, $description, $is_active, $image_url, $id);
 
     $stmt = $conn->prepare($sql);

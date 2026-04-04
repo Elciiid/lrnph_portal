@@ -30,11 +30,11 @@ if ($type === 'applications') {
     echo '<tr><th colspan="4" style="background-color: #a855f7; color: white;">Live News / Announcements Report</th></tr>';
     echo '<tr><th>Title</th><th>Author</th><th>Date Published</th><th>Status</th></tr>';
 
-    $sql = "SELECT title, created_by, created_at, status FROM prtl_portal_announcements ORDER BY created_at DESC";
+    $sql = "SELECT title, created_by, created_at, status FROM \"prtl_portal_announcements\" ORDER BY created_at DESC";
     $stmt = $conn->query($sql);
     if ($stmt) {
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $date = $row['created_at'] ? $row['created_at']->format('Y-m-d H:i') : 'N/A';
+            $date = $row['created_at'] ? date('Y-m-d H:i', strtotime($row['created_at'])) : 'N/A';
             echo "<tr><td>{$row['title']}</td><td>{$row['created_by']}</td><td>{$date}</td><td>{$row['status']}</td></tr>";
         }
     }

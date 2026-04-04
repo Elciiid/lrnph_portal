@@ -12,7 +12,7 @@ if (!$isIT) {
 // Core Access fetch removed as per request
 
 // Fetch App Modules
-$appQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, module_column ASC, ID ASC";
+$appQuery = "SELECT * FROM \"prtl_portal_AppModules\" ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, module_column ASC, \"ID\" ASC";
 $appStmt = $conn->query($appQuery);
 $appModules = [];
 if ($appStmt) {
@@ -22,19 +22,21 @@ if ($appStmt) {
 }
 
 // Ensure prtl_portal_Modules table exists handling missing schema
-$checkTable = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'prtl_portal_Modules'";
+$checkTable = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'prtl_portal_Modules'";
 $checkStmt = $conn->query($checkTable);
-if ($checkStmt === false || !sqlsrv_has_rows($checkStmt)) {
+$tableExists = ($checkStmt && $checkStmt->fetchColumn() > 0);
+
+if (!$tableExists) {
     $createTable = "CREATE TABLE prtl_portal_Modules (
-        ID INT IDENTITY(1,1) PRIMARY KEY,
-        module_name NVARCHAR(255) NOT NULL,
-        module_icon NVARCHAR(255) DEFAULT 'fa-solid fa-box'
+        \"ID\" SERIAL PRIMARY KEY,
+        module_name VARCHAR(255) NOT NULL,
+        module_icon VARCHAR(255) DEFAULT 'fa-solid fa-box'
     )";
-    sqlsrv_query($conn, $createTable);
+    $conn->exec($createTable);
 }
 
 // Fetch Available Modules
-$modQuery = "SELECT * FROM prtl_portal_Modules ORDER BY module_name ASC";
+$modQuery = "SELECT * FROM \"prtl_portal_Modules\" ORDER BY module_name ASC";
 $modStmt = $conn->query($modQuery);
 $availableModules = [];
 if ($modStmt) {
@@ -54,9 +56,10 @@ if (empty($availableModules)) {
         ['Admin', 'fa-solid fa-user-shield'],
         ['Production', 'fa-solid fa-industry']
     ];
-    $insertSql = "INSERT INTO prtl_portal_Modules (module_name, module_icon) VALUES (?, ?)";
+    $insertSql = "INSERT INTO \"prtl_portal_Modules\" (module_name, module_icon) VALUES (?, ?)";
+    $stmt = $conn->prepare($insertSql);
     foreach ($defaults as $def) {
-        sqlsrv_query($conn, $insertSql, $def);
+        $stmt->execute($def);
     }
     // Re-fetch to show immediate result
     $modStmt = $conn->query($modQuery);

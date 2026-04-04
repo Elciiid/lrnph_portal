@@ -13,14 +13,15 @@ $employee_id = $_SESSION['employee_id'] ?? '';
 
 // Check for meetings starting within the next 2 minutes to be safe with polling intervals
 // We want to find meetings where the user is the creator OR an attendee
-$query = "SELECT TOP 1 ps.meeting_id, ps.meeting_name, ps.start_time, ps.meeting_date
-          FROM prtl_AP_Meetings ps
-          LEFT JOIN prtl_AP_Attendees pma ON ps.meeting_id = pma.meeting_id
-          WHERE ps.meeting_date = CAST(GETDATE() AS DATE)
-          AND ps.start_time > CAST(GETDATE() AS TIME)
-          AND ps.start_time <= DATEADD(minute, 2, CAST(GETDATE() AS TIME))
+$query = "SELECT ps.meeting_id, ps.meeting_name, ps.start_time, ps.meeting_date
+          FROM \"prtl_AP_Meetings\" ps
+          LEFT JOIN \"prtl_AP_Attendees\" pma ON ps.meeting_id = pma.meeting_id
+          WHERE ps.meeting_date = CURRENT_DATE
+          AND ps.start_time > CURRENT_TIME
+          AND ps.start_time <= CURRENT_TIME + INTERVAL '2 minutes'
           AND (ps.facilitator = ? OR pma.employee_id = ?)
-          ORDER BY ps.start_time ASC";
+          ORDER BY ps.start_time ASC
+          LIMIT 1";
 
 $params = array($username, $employee_id);
 $stmt = $conn->prepare($query);
@@ -32,7 +33,7 @@ if ($stmt === false) {
 }
 
 if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $startTime = $row['start_time']->format('h:i A');
+    $startTime = date('h:i A', strtotime($row['start_time']));
     $title = $row['meeting_name'];
     $meetingId = $row['meeting_id'];
 

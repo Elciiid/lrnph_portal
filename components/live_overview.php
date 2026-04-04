@@ -25,23 +25,23 @@ if (isset($conn) && !empty($currentUserId)) {
     // Helper to get base query condition
     // Use facilitator or attendee check
 
-    $baseJoin = "LEFT JOIN prtl_AP_Attendees pma ON ps.meeting_id = pma.meeting_id AND pma.employee_id = ?";
+    $baseJoin = "LEFT JOIN \"prtl_AP_Attendees\" pma ON ps.meeting_id = pma.meeting_id AND pma.employee_id = ?";
     $baseWhere = "(ps.facilitator = ? OR pma.employee_id IS NOT NULL)";
     $paramsUser = array($currentUserId, $currentUserId);
 
     // 1. Day Data (Hourly)
     $today = date('Y-m-d');
-    $sqlDay = "SELECT DATEPART(hour, start_time) as hr, COUNT(DISTINCT ps.meeting_id) as count 
-               FROM prtl_AP_Meetings ps 
+    $sqlDay = "SELECT EXTRACT(HOUR FROM start_time) as hr, COUNT(DISTINCT ps.meeting_id) as count 
+               FROM \"prtl_AP_Meetings\" ps 
                $baseJoin 
-               WHERE $baseWhere AND ps.meeting_date = CAST(? AS DATE)
-               GROUP BY DATEPART(hour, start_time)";
-    $stmtDay = sqlsrv_query($conn, $sqlDay, array_merge($paramsUser, [$today]));
-    if ($stmtDay) {
-        while ($row = $stmtDay->fetch(PDO::FETCH_ASSOC)) {
-            $chartData['day'][$row['hr']] = $row['count'];
-            $totals['day'] += $row['count'];
-        }
+               WHERE $baseWhere AND ps.meeting_date = ?::date
+               GROUP BY hr";
+    $stmtDay = $conn->prepare($sqlDay);
+    $stmtDay->execute(array_merge($paramsUser, [$today]));
+    while ($row = $stmtDay->fetch(PDO::FETCH_ASSOC)) {
+        $hr = (int)$row['hr'];
+        $chartData['day'][$hr] = (int)$row['count'];
+        $totals['day'] += (int)$row['count'];
     }
 
     // 2. Week Data (Daily)
@@ -49,54 +49,53 @@ if (isset($conn) && !empty($currentUserId)) {
     $saturday = date('Y-m-d', strtotime('next Saturday', strtotime('yesterday')));
 
     $sqlWeek = "SELECT ps.meeting_date, COUNT(DISTINCT ps.meeting_id) as count 
-                FROM prtl_AP_Meetings ps 
+                FROM \"prtl_AP_Meetings\" ps 
                 $baseJoin 
-                WHERE $baseWhere AND ps.meeting_date BETWEEN ? AND ?
+                WHERE $baseWhere AND ps.meeting_date BETWEEN ?::date AND ?::date
                 GROUP BY ps.meeting_date";
-    $stmtWeek = sqlsrv_query($conn, $sqlWeek, array_merge($paramsUser, [$sunday, $saturday]));
-    if ($stmtWeek) {
-        while ($row = $stmtWeek->fetch(PDO::FETCH_ASSOC)) {
-            $dayIndex = $row['meeting_date']->format('w'); // 0 (Sun) - 6 (Sat)
-            $chartData['week'][$dayIndex] = $row['count'];
-            $totals['week'] += $row['count'];
-        }
+    $stmtWeek = $conn->prepare($sqlWeek);
+    $stmtWeek->execute(array_merge($paramsUser, [$sunday, $saturday]));
+    while ($row = $stmtWeek->fetch(PDO::FETCH_ASSOC)) {
+        $dayIndex = date('w', strtotime($row['meeting_date'])); // 0 (Sun) - 6 (Sat)
+        $chartData['week'][$dayIndex] = (int)$row['count'];
+        $totals['week'] += (int)$row['count'];
     }
 
     // 3. Month Data (Daily)
     $firstDayMonth = date('Y-m-01');
     $lastDayMonth = date('Y-m-t');
     $daysInMonth = date('t');
-    $chartData['month'] = array_fill(1, $daysInMonth, 0);
+    $chartData['month'] = array_fill(1, (int)$daysInMonth, 0);
 
-    $sqlMonth = "SELECT DAY(ps.meeting_date) as d, COUNT(DISTINCT ps.meeting_id) as count 
-                 FROM prtl_AP_Meetings ps 
+    $sqlMonth = "SELECT EXTRACT(DAY FROM ps.meeting_date) as d, COUNT(DISTINCT ps.meeting_id) as count 
+                 FROM \"prtl_AP_Meetings\" ps 
                  $baseJoin 
-                 WHERE $baseWhere AND ps.meeting_date BETWEEN ? AND ?
-                 GROUP BY DAY(ps.meeting_date)";
-    $stmtMonth = sqlsrv_query($conn, $sqlMonth, array_merge($paramsUser, [$firstDayMonth, $lastDayMonth]));
-    if ($stmtMonth) {
-        while ($row = $stmtMonth->fetch(PDO::FETCH_ASSOC)) {
-            $chartData['month'][$row['d']] = $row['count'];
-            $totals['month'] += $row['count'];
-        }
+                 WHERE $baseWhere AND ps.meeting_date BETWEEN ?::date AND ?::date
+                 GROUP BY d";
+    $stmtMonth = $conn->prepare($sqlMonth);
+    $stmtMonth->execute(array_merge($paramsUser, [$firstDayMonth, $lastDayMonth]));
+    while ($row = $stmtMonth->fetch(PDO::FETCH_ASSOC)) {
+        $d = (int)$row['d'];
+        $chartData['month'][$d] = (int)$row['count'];
+        $totals['month'] += (int)$row['count'];
     }
 
     // 4. Year Data (Monthly)
     $firstDayYear = date('Y-01-01');
     $lastDayYear = date('Y-12-31');
 
-    $sqlYear = "SELECT MONTH(ps.meeting_date) as m, COUNT(DISTINCT ps.meeting_id) as count 
-                FROM prtl_AP_Meetings ps 
+    $sqlYear = "SELECT EXTRACT(MONTH FROM ps.meeting_date) as m, COUNT(DISTINCT ps.meeting_id) as count 
+                FROM \"prtl_AP_Meetings\" ps 
                 $baseJoin 
-                WHERE $baseWhere AND ps.meeting_date BETWEEN ? AND ?
-                GROUP BY MONTH(ps.meeting_date)";
-    $stmtYear = sqlsrv_query($conn, $sqlYear, array_merge($paramsUser, [$firstDayYear, $lastDayYear]));
-    if ($stmtYear) {
-        while ($row = $stmtYear->fetch(PDO::FETCH_ASSOC)) {
-            // Month 1-12 -> Index 0-11
-            $chartData['year'][$row['m'] - 1] = $row['count'];
-            $totals['year'] += $row['count'];
-        }
+                WHERE $baseWhere AND ps.meeting_date BETWEEN ?::date AND ?::date
+                GROUP BY m";
+    $stmtYear = $conn->prepare($sqlYear);
+    $stmtYear->execute(array_merge($paramsUser, [$firstDayYear, $lastDayYear]));
+    while ($row = $stmtYear->fetch(PDO::FETCH_ASSOC)) {
+        // Month 1-12 -> Index 0-11
+        $m = (int)$row['m'];
+        $chartData['year'][$m - 1] = (int)$row['count'];
+        $totals['year'] += (int)$row['count'];
     }
 }
 ?>

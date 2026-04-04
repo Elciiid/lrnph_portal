@@ -13,7 +13,7 @@ $date = $_GET['date'] ?? date('Y-m-d');
 if (isset($conn)) {
     // 1. Get all active venues
     $venues = [];
-    $vSql = "SELECT venue_name FROM AP_Venues WHERE is_active = 1 ORDER BY venue_name ASC";
+    $vSql = "SELECT venue_name FROM \"prtl_AP_Venues\" WHERE is_active = 1 ORDER BY venue_name ASC";
     $vStmt = $conn->query($vSql);
     if ($vStmt) {
         while ($vRow = $vStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -22,12 +22,12 @@ if (isset($conn)) {
     }
 
     // 2. Get all meetings for this date
-    $mSql = "SELECT meeting_name, venue, start_time, end_time, facilitator,
-                ml.FirstName, ml.LastName
-             FROM prtl_AP_Meetings ps
-             LEFT JOIN prtl_lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
-             WHERE meeting_date = ? AND venue IS NOT NULL AND venue != 'Online'
-             ORDER BY start_time ASC";
+    $mSql = "SELECT ps.meeting_name, ps.venue, ps.start_time, ps.end_time, ps.facilitator,
+                ml.\"FirstName\", ml.\"LastName\"
+             FROM \"prtl_AP_Meetings\" ps
+             LEFT JOIN \"prtl_lrn_master_list\" ml ON ps.facilitator = ml.\"BiometricsID\"
+             WHERE ps.meeting_date = ?::date AND ps.venue IS NOT NULL AND ps.venue != 'Online'
+             ORDER BY ps.start_time ASC";
 
     $mStmt = $conn->prepare($mSql);
     $mStmt->execute([$date]);
@@ -44,8 +44,8 @@ if (isset($conn)) {
 
             $venues[$v][] = [
                 'title' => $row['meeting_name'],
-                'start' => is_a($sTime, 'DateTime') ? $sTime->format('h:i A') : date('h:i A', strtotime($sTime)),
-                'end' => is_a($eTime, 'DateTime') ? $eTime->format('h:i A') : date('h:i A', strtotime($eTime)),
+                'start' => $sTime ? date('h:i A', strtotime($sTime)) : '',
+                'end' => $eTime ? date('h:i A', strtotime($eTime)) : '',
                 'facilitator' => trim(($row['FirstName'] ?? '') . ' ' . ($row['LastName'] ?? '')) ?: $row['facilitator']
             ];
         }

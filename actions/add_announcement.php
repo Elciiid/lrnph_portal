@@ -34,7 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $image = $_POST['image_url'] ?? '';
     }
 
-    $sql = "INSERT INTO prtl_portal_announcements (title, description, image_url, type, is_active, created_by) VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO \"prtl_portal_announcements\" (title, description, image_url, type, is_active, created_by) VALUES (?, ?, ?, ?, ?, ?)";
     $params = [$title, $description, $image, $type, $isActive, $createdBy];
 
     $stmt = $conn->prepare($sql);

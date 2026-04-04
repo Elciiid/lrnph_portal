@@ -18,18 +18,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if (!empty($name)) {
             // Check if exists
-            $checkSql = "SELECT ID FROM prtl_portal_Modules WHERE module_name = ?";
+            $checkSql = "SELECT \"ID\" FROM \"prtl_portal_Modules\" WHERE module_name = ?";
             $checkStmt = $conn->prepare($checkSql);
-    $checkStmt->execute(array($name));
-            if ($checkStmt && sqlsrv_fetch_array($checkStmt)) {
+            $checkStmt->execute(array($name));
+            if ($checkStmt && $checkStmt->fetch()) {
                 header("Location: ../admin.php?page=settings&error=module_exists");
                 exit();
             }
 
-            $sql = "INSERT INTO prtl_portal_Modules (module_name, module_icon) VALUES (?, ?)";
-            $params = array($name, $icon);
+            $sql = "INSERT INTO \"prtl_portal_Modules\" (module_name, module_icon) VALUES (?, ?)";
+            $stmt = $conn->prepare($sql);
 
-            if (sqlsrv_query($conn, $sql, $params)) {
+            if ($stmt->execute(array($name, $icon))) {
                 header("Location: ../admin.php?page=settings&success=module_added");
             } else {
                 header("Location: ../admin.php?page=settings&error=add_failed");
@@ -38,11 +38,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif ($action === 'delete') {
         $id = $_POST['id'];
 
-        // Prevent deleting modules that are in use? Permissions might be tricky.
-        // For now, allow delete.
-
-        $sql = "DELETE FROM prtl_portal_Modules WHERE ID = ?";
-        if (sqlsrv_query($conn, $sql, array($id))) {
+        $sql = "DELETE FROM \"prtl_portal_Modules\" WHERE \"ID\" = ?";
+        $stmt = $conn->prepare($sql);
+        if ($stmt->execute(array($id))) {
             header("Location: ../admin.php?page=settings&success=module_deleted");
         } else {
             header("Location: ../admin.php?page=settings&error=delete_failed");

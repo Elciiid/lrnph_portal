@@ -16,8 +16,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($action === 'delete') {
         $id = $_POST['id'];
-        $sql = "DELETE FROM prtl_portal_AppModules WHERE ID = ?";
-        if (sqlsrv_query($conn, $sql, array($id))) {
+        $sql = "DELETE FROM \"prtl_portal_AppModules\" WHERE \"ID\" = ?";
+        $stmt = $conn->prepare($sql);
+        if ($stmt->execute(array($id))) {
             header("Location: ../admin.php?page=settings&tab=apps&success=deleted");
         } else {
             header("Location: ../admin.php?page=settings&error=delete_failed");
@@ -28,13 +29,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $perm = $_POST['perm_key'];
         $url = $_POST['app_url'] ?? '#';
 
-        $sql = "INSERT INTO prtl_portal_AppModules (module_column, app_name, perm_key, app_url, added_by, date_added) VALUES (?, ?, ?, ?, ?, ?)";
-        $params = array($module, $name, $perm, $url, $admin, $date);
+        $sql = "INSERT INTO \"prtl_portal_AppModules\" (module_column, app_name, perm_key, app_url, added_by, date_added) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+        $params = array($module, $name, $perm, $url, $admin);
+        $stmt = $conn->prepare($sql);
 
-        if (sqlsrv_query($conn, $sql, $params)) {
+        if ($stmt->execute($params)) {
             header("Location: ../admin.php?page=settings&tab=apps&success=added");
         } else {
-            // error_log(print_r(['error' => 'Database error occurred'], true));
             header("Location: ../admin.php?page=settings&error=add_failed");
         }
     } elseif ($action === 'edit') {
@@ -44,10 +45,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $perm = $_POST['perm_key'];
         $url = $_POST['app_url'] ?? '#';
 
-        $sql = "UPDATE prtl_portal_AppModules SET module_column = ?, app_name = ?, perm_key = ?, app_url = ? WHERE ID = ?";
+        $sql = "UPDATE \"prtl_portal_AppModules\" SET module_column = ?, app_name = ?, perm_key = ?, app_url = ? WHERE \"ID\" = ?";
         $params = array($module, $name, $perm, $url, $id);
+        $stmt = $conn->prepare($sql);
 
-        if (sqlsrv_query($conn, $sql, $params)) {
+        if ($stmt->execute($params)) {
             header("Location: ../admin.php?page=settings&tab=apps&success=updated");
         } else {
             header("Location: ../admin.php?page=settings&error=update_failed");

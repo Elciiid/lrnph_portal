@@ -7,7 +7,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Toggle status
     $newStatus = ($currentStatus == 1) ? 0 : 1;
 
-    $query = "UPDATE prtl_portal_apps SET is_active = ? WHERE id = ?";
+    $query = "UPDATE \"prtl_portal_apps\" SET is_active = ? WHERE id = ?";
     $params = array($newStatus, $id);
 
     $stmt = $conn->prepare($query);

@@ -5,11 +5,11 @@ require_once __DIR__ . '/../includes/db.php';
 header('Content-Type: application/json');
 
 if (isset($conn)) {
-    $sql = "SELECT venue_id, venue_name FROM AP_Venues WHERE is_active = 1 ORDER BY venue_name ASC";
+    $sql = "SELECT venue_id, venue_name FROM \"prtl_AP_Venues\" WHERE is_active = 1 ORDER BY venue_name ASC";
     $stmt = $conn->query($sql);
 
-    if ($stmt === false) {
-        echo json_encode(['error' => 'Query failed', 'details' => ['error' => 'Database error occurred']]);
+    if (!$stmt) {
+        echo json_encode(['error' => 'Query failed']);
         exit;
     }
 

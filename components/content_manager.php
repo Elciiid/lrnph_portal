@@ -13,7 +13,7 @@
     <div class="overflow-y-auto flex-1 pr-2 custom-scrollbar">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
             <?php
-            $appsQuery = "SELECT * FROM prtl_portal_apps ORDER BY sort_order ASC, name ASC";
+            $appsQuery = "SELECT * FROM \"prtl_portal_apps\" ORDER BY sort_order ASC, name ASC";
             $appsStmt = $conn->query($appsQuery);
             if ($appsStmt) {
                 while ($app = $appsStmt->fetch(PDO::FETCH_ASSOC)) {
