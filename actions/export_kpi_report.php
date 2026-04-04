@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['username'])) {
@@ -31,10 +30,10 @@ if ($type === 'applications') {
     echo '<tr><th colspan="4" style="background-color: #a855f7; color: white;">Live News / Announcements Report</th></tr>';
     echo '<tr><th>Title</th><th>Author</th><th>Date Published</th><th>Status</th></tr>';
 
-    $sql = "SELECT title, created_by, created_at, status FROM portal_announcements ORDER BY created_at DESC";
-    $stmt = sqlsrv_query($conn, $sql);
+    $sql = "SELECT title, created_by, created_at, status FROM prtl_portal_announcements ORDER BY created_at DESC";
+    $stmt = $conn->query($sql);
     if ($stmt) {
-        while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $date = $row['created_at'] ? $row['created_at']->format('Y-m-d H:i') : 'N/A';
             echo "<tr><td>{$row['title']}</td><td>{$row['created_by']}</td><td>{$date}</td><td>{$row['status']}</td></tr>";
         }

@@ -1,17 +1,16 @@
 <?php
-require_once '../includes/db.php';
-session_start();
-
+require_once __DIR__ . '/../includes/db.php';
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
 
-    $query = "DELETE FROM portal_apps WHERE id = ?";
+    $query = "DELETE FROM prtl_portal_apps WHERE id = ?";
     $params = array($id);
 
-    $stmt = sqlsrv_query($conn, $query, $params);
+    $stmt = $conn->prepare($query);
+    $stmt->execute($params);
 
     if ($stmt === false) {
-        die(print_r(sqlsrv_errors(), true));
+        die(print_r(['error' => 'Database error occurred'], true));
     }
 }
 

@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
 
@@ -18,8 +17,9 @@ if (!$userId) {
     exit;
 }
 
-$query = "DELETE FROM LRNPH.dbo.lrnph_users WHERE user_id = ?";
-$stmt = sqlsrv_query($conn, $query, array($userId));
+$query = "DELETE FROM prtl_lrnph_users WHERE user_id = ?";
+$stmt = $conn->prepare($query);
+    $stmt->execute(array($userId));
 
 if ($stmt) {
     echo json_encode(['success' => true]);

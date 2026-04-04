@@ -20,7 +20,7 @@ if (!$mssql) {
 $fullname = preg_replace('/\s+/', ' ', trim($_SESSION['fullname'] ?? $_SESSION['username']));
 $employeeId = $_SESSION['employee_id'] ?? '';
 
-require_once 'includes/photo_helper.php';
+require_once __DIR__ . '/../includes/photo_helper.php';
 
 // Helper to resolve photo
 function resolve_photo($name)
@@ -40,14 +40,14 @@ $messages = [];
 // Handle non-AJAX actions? Ideally all JS. 
 // But the view needs to render the initial state.
 
-// Fetch Conversations (DMs)
+// Fetch prtl_Conversations (DMs)
 $sqlDMs = "
 WITH pairs AS (
     SELECT
         REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') AS u1,
         REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') AS u2,
         MAX(sent_at) as last_activity
-    FROM dbo.Messages
+    FROM prtl_Messages
     WHERE (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? OR REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?) AND receiver IS NOT NULL
     GROUP BY REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' '),
              REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ')
@@ -64,12 +64,12 @@ unified_pairs AS (
 SELECT p.uu1, p.uu2, p.m_activity as last_activity, e.EmployeeID, lm.message as last_message, lm.sender as last_sender 
 FROM unified_pairs p
 OUTER APPLY (
-    SELECT TOP 1 EmployeeID FROM LRNPH_E.dbo.lrn_master_list 
+    SELECT TOP 1 EmployeeID FROM prtl_lrn_master_list 
     WHERE REPLACE(REPLACE(LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName)), '  ', ' '), '  ', ' ') = (CASE WHEN p.uu1 = ? THEN p.uu2 ELSE p.uu1 END)
 ) e
 OUTER APPLY (
     SELECT TOP 1 message, REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') as sender
-    FROM dbo.Messages m 
+    FROM prtl_Messages m 
     WHERE ((REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = p.uu1 AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = p.uu2) 
         OR (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = p.uu2 AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = p.uu1))
     ORDER BY sent_at DESC
@@ -80,14 +80,14 @@ $stmtDMs = sqlsrv_query($mssql, $sqlDMs, [$fullname, $fullname, $fullname]);
 // Fetch Groups with Members for Search
 $sqlGroups = "
 SELECT c.id, c.name, c.photo_path,
-       (SELECT STRING_AGG(participant_name, ' ') FROM dbo.ConversationParticipants WHERE conversation_id = c.id) as members,
+       (SELECT STRING_AGG(participant_name, ' ') FROM prtl_ConversationParticipants WHERE conversation_id = c.id) as members,
        lm.message as last_message, lm.sender as last_sender,
-       (SELECT MAX(sent_at) FROM dbo.Messages WHERE conversation_id = c.id) as max_sent
-FROM dbo.Conversations c
-JOIN dbo.ConversationParticipants p ON p.conversation_id = c.id
+       (SELECT MAX(sent_at) FROM prtl_Messages WHERE conversation_id = c.id) as max_sent
+FROM prtl_Conversations c
+JOIN prtl_ConversationParticipants p ON p.conversation_id = c.id
 OUTER APPLY (
     SELECT TOP 1 message, REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') as sender 
-    FROM dbo.Messages 
+    FROM prtl_Messages 
     WHERE conversation_id = c.id 
     ORDER BY sent_at DESC
 ) lm
@@ -95,11 +95,11 @@ WHERE p.participant_name = ?
 ORDER BY max_sent DESC";
 $stmtGroups = sqlsrv_query($mssql, $sqlGroups, [$fullname]);
 
-// Ensure UserNotes table exists before querying
+// Ensure prtl_UserNotes table exists before querying
 $schemaSQL = "
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserNotes]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserNotes]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE dbo.UserNotes (
+    CREATE TABLE prtl_UserNotes (
         username NVARCHAR(150) NOT NULL PRIMARY KEY,
         note_text NVARCHAR(60) NOT NULL,
         image_path NVARCHAR(255) NULL,
@@ -108,9 +108,9 @@ BEGIN
 END;
 ELSE
 BEGIN
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[UserNotes]') AND name = 'image_path')
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserNotes]') AND name = 'image_path')
     BEGIN
-        ALTER TABLE dbo.UserNotes ADD image_path NVARCHAR(255) NULL;
+        ALTER TABLE prtl_UserNotes ADD image_path NVARCHAR(255) NULL;
     END;
 END;
 ";
@@ -120,16 +120,16 @@ sqlsrv_query($mssql, $schemaSQL);
 $sqlNotes = "
 SELECT n.username, n.note_text, n.image_path, n.updated_at, e.EmployeeID,
        CASE WHEN v.last_viewed_at >= n.updated_at THEN 1 ELSE 0 END as is_seen
-FROM dbo.UserNotes n
-LEFT JOIN LRNPH_E.dbo.lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = n.username
-LEFT JOIN dbo.StoryViews v ON v.story_owner_name = n.username AND v.viewer_name = ?
+FROM prtl_UserNotes n
+LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = n.username
+LEFT JOIN prtl_StoryViews v ON v.story_owner_name = n.username AND v.viewer_name = ?
 WHERE n.updated_at >= DATEADD(hour, -24, GETDATE())
 ORDER BY n.updated_at DESC";
 $stmtNotes = sqlsrv_query($mssql, $sqlNotes, [$fullname]);
 $activeNotes = [];
 $myNote = null;
 if ($stmtNotes) {
-    while ($row = sqlsrv_fetch_array($stmtNotes, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $stmtNotes->fetch(PDO::FETCH_ASSOC)) {
         if ($row['username'] === $fullname) {
             $myNote = $row; // Now storing whole row for myNote to get image
         } else {
@@ -230,7 +230,7 @@ if ($stmtNotes) {
 
         <div class="conv-list custom-scrollbar">
             <?php if ($stmtDMs): ?>
-                <?php while ($row = sqlsrv_fetch_array($stmtDMs, SQLSRV_FETCH_ASSOC)):
+                <?php while ($row = $stmtDMs->fetch(PDO::FETCH_ASSOC)):
                     $other = ($row['uu1'] === $fullname) ? $row['uu2'] : $row['uu1'];
                     if (!$other)
                         continue;
@@ -270,7 +270,7 @@ if ($stmtNotes) {
 
             <?php if ($stmtGroups): ?>
                 <div class="px-3 mt-4 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Groups</div>
-                <?php while ($row = sqlsrv_fetch_array($stmtGroups, SQLSRV_FETCH_ASSOC)):
+                <?php while ($row = $stmtGroups->fetch(PDO::FETCH_ASSOC)):
                     $isActive = ($cid === $row['id']);
                     ?>
                     <a href="admin.php?page=chatnow&cid=<?= $row['id'] ?>"
@@ -330,24 +330,24 @@ if ($stmtNotes) {
             if ($story) {
                 // Fetch viewers if owner
                 if ($viewStoryUser === $fullname) {
-                    $vSql = "SELECT viewer_name, reaction FROM dbo.StoryViews WHERE story_owner_name = ? AND last_viewed_at >= ? AND viewer_name != ?";
+                    $vSql = "SELECT viewer_name, reaction FROM prtl_StoryViews WHERE story_owner_name = ? AND last_viewed_at >= ? AND viewer_name != ?";
                     $vStmt = sqlsrv_query($mssql, $vSql, [$fullname, $story['updated_at'], $fullname]);
                     if ($vStmt) {
-                        while ($vr = sqlsrv_fetch_array($vStmt, SQLSRV_FETCH_ASSOC)) {
+                        while ($vr = $vStmt->fetch(PDO::FETCH_ASSOC)) {
                             $viewersList[] = $vr;
                         }
                     }
                 }
 
                 // Fetch my reaction
-                $rSql = "SELECT reaction FROM dbo.StoryViews WHERE viewer_name = ? AND story_owner_name = ?";
+                $rSql = "SELECT reaction FROM prtl_StoryViews WHERE viewer_name = ? AND story_owner_name = ?";
                 $rStmt = sqlsrv_query($mssql, $rSql, [$fullname, $viewStoryUser]);
-                if ($rStmt && $rr = sqlsrv_fetch_array($rStmt, SQLSRV_FETCH_ASSOC)) {
+                if ($rStmt && $rr = $rStmt->fetch(PDO::FETCH_ASSOC)) {
                     $myReaction = $rr['reaction'] ?? '';
                 }
 
                 // Mark as seen
-                $checkSql = "MERGE dbo.StoryViews AS t
+                $checkSql = "MERGE prtl_StoryViews AS t
                             USING (SELECT ? AS viewer, ? AS owner) AS s
                             ON t.viewer_name = s.viewer AND t.story_owner_name = s.owner
                             WHEN MATCHED THEN UPDATE SET last_viewed_at = GETDATE()
@@ -792,7 +792,7 @@ if ($stmtNotes) {
             $isGroup = ($cid > 0);
             if ($isGroup) {
                 // Get Group Info
-                $gq = sqlsrv_query($mssql, "SELECT name, photo_path FROM dbo.Conversations WHERE id=?", [$cid]);
+                $gq = sqlsrv_query($mssql, "SELECT name, photo_path FROM prtl_Conversations WHERE id=?", [$cid]);
                 $gcPhotoPath = '';
                 if ($gq && $r = sqlsrv_fetch_array($gq)) {
                     $headerTitle = $r['name'];
@@ -801,43 +801,43 @@ if ($stmtNotes) {
 
                 // Get Group Members with photos
                 $memSql = "SELECT cp.participant_name, e.EmployeeID 
-                           FROM dbo.ConversationParticipants cp
-                           LEFT JOIN LRNPH_E.dbo.lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(cp.participant_name)), '  ', ' '), '  ', ' ')
+                           FROM prtl_ConversationParticipants cp
+                           LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(cp.participant_name)), '  ', ' '), '  ', ' ')
                            WHERE cp.conversation_id=? ORDER BY cp.participant_name";
                 $memQ = sqlsrv_query($mssql, $memSql, [$cid]);
                 $groupMembers = [];
                 if ($memQ)
-                    while ($mqr = sqlsrv_fetch_array($memQ, SQLSRV_FETCH_ASSOC))
+                    while ($mqr = $memQ->fetch(PDO::FETCH_ASSOC))
                         $groupMembers[] = $mqr;
 
-                // Get Messages (Group) with sender photos and reply info
+                // Get prtl_Messages (Group) with sender photos and reply info
                 $msgSql = "SELECT m.*, e.EmployeeID, r.sender as reply_sender, r.message as reply_text
-                           FROM dbo.Messages m
-                           LEFT JOIN LRNPH_E.dbo.lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
-                           LEFT JOIN dbo.Messages r ON m.reply_to_id = r.id
+                           FROM prtl_Messages m
+                           LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
+                           LEFT JOIN prtl_Messages r ON m.reply_to_id = r.id
                            WHERE m.conversation_id=? ORDER BY m.sent_at ASC";
                 $mq = sqlsrv_query($mssql, $msgSql, [$cid]);
                 if ($mq)
-                    while ($m = sqlsrv_fetch_array($mq, SQLSRV_FETCH_ASSOC))
+                    while ($m = $mq->fetch(PDO::FETCH_ASSOC))
                         $messages[] = $m;
             } else {
                 $headerTitle = $user2;
                 // Fetch DM header user photo
                 $headerBio = '';
-                $hq = sqlsrv_query($mssql, "SELECT TOP 1 EmployeeID FROM LRNPH_E.dbo.lrn_master_list WHERE REPLACE(REPLACE(LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName)), '  ', ' '), '  ', ' ') = ?", [$headerTitle]);
+                $hq = sqlsrv_query($mssql, "SELECT TOP 1 EmployeeID FROM prtl_lrn_master_list WHERE REPLACE(REPLACE(LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName)), '  ', ' '), '  ', ' ') = ?", [$headerTitle]);
                 if ($hq && $hr = sqlsrv_fetch_array($hq))
                     $headerBio = $hr['EmployeeID'];
 
                 $msgSql = "SELECT m.*, e.EmployeeID, r.sender as reply_sender, r.message as reply_text
-                           FROM dbo.Messages m
-                           LEFT JOIN LRNPH_E.dbo.lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
-                           LEFT JOIN dbo.Messages r ON m.reply_to_id = r.id
+                           FROM prtl_Messages m
+                           LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
+                           LEFT JOIN prtl_Messages r ON m.reply_to_id = r.id
                            WHERE (REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(m.receiver)), '  ', ' '), '  ', ' ') = ?) 
                               OR (REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(m.receiver)), '  ', ' '), '  ', ' ') = ?) 
                            ORDER BY m.sent_at ASC";
                 $mq = sqlsrv_query($mssql, $msgSql, [$user1, $user2, $user2, $user1]);
                 if ($mq)
-                    while ($m = sqlsrv_fetch_array($mq, SQLSRV_FETCH_ASSOC))
+                    while ($m = $mq->fetch(PDO::FETCH_ASSOC))
                         $messages[] = $m;
             }
             ?>
@@ -1019,7 +1019,7 @@ if ($stmtNotes) {
                 </div>
             <?php endif; ?>
 
-            <!-- Messages Area -->
+            <!-- prtl_Messages Area -->
             <div class="message-content custom-scrollbar" id="msgContainer">
                 <div class="mt-auto"></div>
                 <?php

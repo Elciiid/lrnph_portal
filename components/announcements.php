@@ -1,11 +1,11 @@
 <?php
 // Fetch announcements
-$annQuery = "SELECT * FROM portal_announcements ORDER BY created_at DESC";
-$annStmt = sqlsrv_query($conn, $annQuery);
+$annQuery = "SELECT * FROM prtl_portal_announcements ORDER BY created_at DESC";
+$annStmt = $conn->query($annQuery);
 $headlines = [];
 $announcements = [];
 if ($annStmt) {
-    while ($row = sqlsrv_fetch_array($annStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $annStmt->fetch(PDO::FETCH_ASSOC)) {
         // Assume 'placement' or 'type' column determines this.
         // If the table uses 'type', we use that. If it uses 'placement', we might need to adjust.
         // Based on setup_announcements.php, the column is 'type'.

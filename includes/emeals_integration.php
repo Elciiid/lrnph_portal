@@ -48,17 +48,18 @@ if (!function_exists('shared_emeals_token')) {
 
         $uid = (int) ($_SESSION['uid'] ?? 0);
 
-        // If UID is missing but we have employee_id, try to resolve it from app.app_users
+        // If UID is missing but we have employee_id, try to resolve it from prtl_app_users
         if ($uid <= 0 && !empty($_SESSION['employee_id'])) {
             $eid = $_SESSION['employee_id'];
 
             // Only attempt query if $conn is valid
             if ($conn) {
-                // Check if app.app_users table exists first to avoid errors if schema differs
+                // Check if prtl_app_users table exists first to avoid errors if schema differs
                 // But assuming standardized schema based on other files
-                $sql = "SELECT TOP 1 id FROM app.app_users WHERE employee_id = ?";
-                $stmt = sqlsrv_query($conn, $sql, array($eid));
-                if ($stmt && $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+                $sql = "SELECT TOP 1 id FROM prtl_app_users WHERE employee_id = ?";
+                $stmt = $conn->prepare($sql);
+    $stmt->execute(array($eid));
+                if ($stmt && $row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $uid = (int) $row['id'];
                     $_SESSION['uid'] = $uid; // Cache it
                 }

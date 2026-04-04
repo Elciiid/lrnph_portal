@@ -1,7 +1,6 @@
 <?php
 // actions/manage_core.php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // Security Check
 $isIT = (isset($_SESSION['department']) && preg_match('/IT|INFORMATION TECHNOLOGY/i', $_SESSION['department']));
@@ -17,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($action === 'delete') {
         $id = $_POST['id'];
-        $sql = "DELETE FROM portal_CoreAccess WHERE ID = ?";
+        $sql = "DELETE FROM prtl_portal_CoreAccess WHERE ID = ?";
         if (sqlsrv_query($conn, $sql, array($id))) {
             header("Location: ../admin.php?page=settings&success=deleted");
         } else {
@@ -28,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $perm = $_POST['perm_key'];
         $desc = $_POST['description'];
 
-        $sql = "INSERT INTO portal_CoreAccess (access_name, perm_key, description, added_by, date_added) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO prtl_portal_CoreAccess (access_name, perm_key, description, added_by, date_added) VALUES (?, ?, ?, ?, ?)";
         $params = array($name, $perm, $desc, $admin, $date);
 
         if (sqlsrv_query($conn, $sql, $params)) {
@@ -42,7 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $perm = $_POST['perm_key'];
         $desc = $_POST['description'];
 
-        $sql = "UPDATE portal_CoreAccess SET access_name = ?, perm_key = ?, description = ? WHERE ID = ?";
+        $sql = "UPDATE prtl_portal_CoreAccess SET access_name = ?, perm_key = ?, description = ? WHERE ID = ?";
         $params = array($name, $perm, $desc, $id);
 
         if (sqlsrv_query($conn, $sql, $params)) {

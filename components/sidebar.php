@@ -58,22 +58,22 @@
             <ul class="list-none">
                 <?php
                 // Fetch App Modules from Database
-                $appModulesQuery = "SELECT * FROM portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, ID ASC";
-                $appModulesStmt = sqlsrv_query($conn, $appModulesQuery);
+                $appModulesQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, ID ASC";
+                $appModulesStmt = $conn->query($appModulesQuery);
                 $menuConfig = [];
                 // Fetch Module Icons dynamically
                 $iconMap = [];
-                $modIconsQuery = "SELECT module_name, module_icon FROM portal_Modules";
-                $modIconsStmt = sqlsrv_query($conn, $modIconsQuery);
+                $modIconsQuery = "SELECT module_name, module_icon FROM prtl_portal_Modules";
+                $modIconsStmt = $conn->query($modIconsQuery);
                 if ($modIconsStmt) {
-                    while ($mRow = sqlsrv_fetch_array($modIconsStmt, SQLSRV_FETCH_ASSOC)) {
+                    while ($mRow = $modIconsStmt->fetch(PDO::FETCH_ASSOC)) {
                         $mKey = strtolower(str_replace(' ', '_', trim($mRow['module_name'])));
                         $iconMap[$mKey] = $mRow['module_icon'];
                     }
                 }
 
                 if ($appModulesStmt) {
-                    while ($row = sqlsrv_fetch_array($appModulesStmt, SQLSRV_FETCH_ASSOC)) {
+                    while ($row = $appModulesStmt->fetch(PDO::FETCH_ASSOC)) {
                         $perm = trim($row['perm_key']);
 
                         // Module key: "Common" -> "common", "QR Task" -> "qr_task"

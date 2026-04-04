@@ -1,9 +1,7 @@
 <?php
 // actions/fetch_planner_events.php
 error_reporting(0);
-require_once '../includes/db.php';
-session_start();
-
+require_once __DIR__ . '/../includes/db.php';
 header('Content-Type: application/json');
 
 try {
@@ -42,18 +40,19 @@ try {
     $evtQuery = "SELECT ps.meeting_id, ps.meeting_name, ps.venue, ps.meeting_date, ps.start_time, ps.end_time, ps.facilitator, ps.custom_category_text,
                      ml.FirstName as CreatorFirst, ml.LastName as CreatorLast,
                      cat.category_name,
-                     (SELECT COUNT(*) FROM LRNPH_OJT.db_datareader.AP_Attendees att 
+                     (SELECT COUNT(*) FROM prtl_AP_Attendees att 
                       WHERE att.meeting_id = ps.meeting_id AND att.employee_id = ?) as IsAttendee
-                 FROM LRNPH_OJT.db_datareader.AP_Meetings ps
-                 LEFT JOIN LRNPH_E.dbo.lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
-                 LEFT JOIN LRNPH_OJT.db_datareader.AP_Categories cat ON ps.category_id = cat.category_id
+                 FROM prtl_AP_Meetings ps
+                 LEFT JOIN prtl_lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
+                 LEFT JOIN prtl_AP_Categories cat ON ps.category_id = cat.category_id
                  WHERE ps.meeting_date >= ? AND ps.meeting_date <= ?
                  ORDER BY ps.start_time ASC";
 
-    $evtStmt = sqlsrv_query($conn, $evtQuery, array($currentUserId, $startDate, $endDate));
+    $evtStmt = $conn->prepare($evtQuery);
+    $evtStmt->execute(array($currentUserId, $startDate, $endDate));
 
     if ($evtStmt === false) {
-        $errs = sqlsrv_errors();
+        $errs = ['error' => 'Database error occurred'];
         $msg = "SQL Query Failed: ";
         if ($errs) {
             foreach ($errs as $e)
@@ -62,7 +61,7 @@ try {
         throw new Exception($msg);
     }
 
-    while ($row = sqlsrv_fetch_array($evtStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $evtStmt->fetch(PDO::FETCH_ASSOC)) {
         $mDate = $row['meeting_date'];
         $dayNum = 0;
         if (is_a($mDate, 'DateTime')) {

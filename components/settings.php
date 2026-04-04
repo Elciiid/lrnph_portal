@@ -12,20 +12,20 @@ if (!$isIT) {
 // Core Access fetch removed as per request
 
 // Fetch App Modules
-$appQuery = "SELECT * FROM portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, module_column ASC, ID ASC";
-$appStmt = sqlsrv_query($conn, $appQuery);
+$appQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, module_column ASC, ID ASC";
+$appStmt = $conn->query($appQuery);
 $appModules = [];
 if ($appStmt) {
-    while ($row = sqlsrv_fetch_array($appStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $appStmt->fetch(PDO::FETCH_ASSOC)) {
         $appModules[] = $row;
     }
 }
 
-// Ensure portal_Modules table exists handling missing schema
-$checkTable = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'portal_Modules'";
-$checkStmt = sqlsrv_query($conn, $checkTable);
+// Ensure prtl_portal_Modules table exists handling missing schema
+$checkTable = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'prtl_portal_Modules'";
+$checkStmt = $conn->query($checkTable);
 if ($checkStmt === false || !sqlsrv_has_rows($checkStmt)) {
-    $createTable = "CREATE TABLE portal_Modules (
+    $createTable = "CREATE TABLE prtl_portal_Modules (
         ID INT IDENTITY(1,1) PRIMARY KEY,
         module_name NVARCHAR(255) NOT NULL,
         module_icon NVARCHAR(255) DEFAULT 'fa-solid fa-box'
@@ -34,11 +34,11 @@ if ($checkStmt === false || !sqlsrv_has_rows($checkStmt)) {
 }
 
 // Fetch Available Modules
-$modQuery = "SELECT * FROM portal_Modules ORDER BY module_name ASC";
-$modStmt = sqlsrv_query($conn, $modQuery);
+$modQuery = "SELECT * FROM prtl_portal_Modules ORDER BY module_name ASC";
+$modStmt = $conn->query($modQuery);
 $availableModules = [];
 if ($modStmt) {
-    while ($mRow = sqlsrv_fetch_array($modStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($mRow = $modStmt->fetch(PDO::FETCH_ASSOC)) {
         $availableModules[] = $mRow;
     }
 }
@@ -54,15 +54,15 @@ if (empty($availableModules)) {
         ['Admin', 'fa-solid fa-user-shield'],
         ['Production', 'fa-solid fa-industry']
     ];
-    $insertSql = "INSERT INTO portal_Modules (module_name, module_icon) VALUES (?, ?)";
+    $insertSql = "INSERT INTO prtl_portal_Modules (module_name, module_icon) VALUES (?, ?)";
     foreach ($defaults as $def) {
         sqlsrv_query($conn, $insertSql, $def);
     }
     // Re-fetch to show immediate result
-    $modStmt = sqlsrv_query($conn, $modQuery);
+    $modStmt = $conn->query($modQuery);
     if ($modStmt) {
         $availableModules = [];
-        while ($mRow = sqlsrv_fetch_array($modStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($mRow = $modStmt->fetch(PDO::FETCH_ASSOC)) {
             $availableModules[] = $mRow;
         }
     }

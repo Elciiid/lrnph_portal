@@ -6,7 +6,7 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
 
@@ -21,21 +21,22 @@ if (isset($conn) && $conn) {
     // Query Master List for active employees in department
     // Sort by First Name
     $sql = "SELECT BiometricsID as id, FirstName, LastName 
-            FROM dbo.lrn_master_list 
+            FROM prtl_lrn_master_list 
             WHERE Department = ? AND isActive = 1 
             ORDER BY FirstName ASC";
 
     $params = array($dept);
-    $stmt = sqlsrv_query($conn, $sql, $params);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
 
     if ($stmt === false) {
         // Return SQL error as JSON
-        echo json_encode(['error' => 'Query failed', 'details' => sqlsrv_errors()]);
+        echo json_encode(['error' => 'Query failed', 'details' => ['error' => 'Database error occurred']]);
         exit;
     }
 
     $employees = [];
-    while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         // Format name: First Last
         $fullName = $row['FirstName'] . ' ' . $row['LastName'];
 

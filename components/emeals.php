@@ -27,11 +27,11 @@ function get_emeals_schedule($deptFilter = null)
     global $emealsServer, $emealsOptions;
     $conn = sqlsrv_connect($emealsServer, $emealsOptions);
     if (!$conn)
-        return ['rows' => [], 'error' => print_r(sqlsrv_errors(), true)];
+        return ['rows' => [], 'error' => print_r(['error' => 'Database error occurred'], true)];
 
     $sql = "SELECT TOP 60 s.full_name, s.bio_id, s.plotted_date, s.time_in, s.time_out, s.schedule, s.overtime 
             FROM [LRNPH_emeals].[dbo].[emeals_plotted_schedule] AS s
-            LEFT JOIN [LRNPH_E].[dbo].[lrn_master_list] AS ml ON ml.BiometricsID COLLATE SQL_Latin1_General_CP1_CI_AS = s.bio_id";
+            LEFT JOIN [LRNPH_E].[dbo].[prtl_lrn_master_list] AS ml ON ml.BiometricsID COLLATE SQL_Latin1_General_CP1_CI_AS = s.bio_id";
     $params = [];
     if ($deptFilter) {
         $sql .= " WHERE ml.Department = ?";
@@ -39,10 +39,11 @@ function get_emeals_schedule($deptFilter = null)
     }
     $sql .= " ORDER BY CAST(s.plotted_date AS DATE) DESC, s.bio_id ASC";
 
-    $stmt = sqlsrv_query($conn, $sql, $params);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
     $rows = [];
     if ($stmt) {
-        while ($r = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $r['plotted_date'] = emeals_format_val($r['plotted_date'], 'Y-m-d');
             $r['time_in'] = emeals_format_val($r['time_in'], 'H:i');
             $r['time_out'] = emeals_format_val($r['time_out'], 'H:i');
@@ -50,7 +51,7 @@ function get_emeals_schedule($deptFilter = null)
         }
     }
     sqlsrv_close($conn);
-    return ['rows' => $rows, 'error' => $stmt ? null : print_r(sqlsrv_errors(), true)];
+    return ['rows' => $rows, 'error' => $stmt ? null : print_r(['error' => 'Database error occurred'], true)];
 }
 
 function get_fcl_access()
@@ -61,10 +62,10 @@ function get_fcl_access()
         return [];
 
     $sql = "SELECT TOP 100 staff_code, employee_name, biometric, department, remarks, served FROM [LRNPH_emeals].[dbo].[fcl_access] ORDER BY staff_code ASC";
-    $stmt = sqlsrv_query($conn, $sql);
+    $stmt = $conn->query($sql);
     $rows = [];
     if ($stmt) {
-        while ($r = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $rows[] = $r;
         }
     }
@@ -89,10 +90,10 @@ function get_emeals_monitor()
             GROUP BY m.emp_id, m.full_name
             ORDER BY MAX(CONVERT(date, m.log_date)) DESC, m.emp_id ASC";
 
-    $stmt = sqlsrv_query($conn, $sql);
+    $stmt = $conn->query($sql);
     $rows = [];
     if ($stmt) {
-        while ($r = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $r['log_date'] = emeals_format_val($r['log_date'], 'Y-m-d');
             $r['log_time'] = emeals_format_val($r['log_time'], 'H:i');
             $r['meal_1_datetime'] = $r['meal_1_datetime'] ? emeals_format_val($r['meal_1_datetime'], 'H:i') : '';

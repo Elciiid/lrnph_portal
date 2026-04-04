@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
 
@@ -19,9 +18,10 @@ if (isset($_SESSION['username'])) {
         // Check DB for specific permission
         // We check for 'user_management' (legacy), 'admin_tab' (legacy), 'admin' (general), or 'new_employee' (specific)
         // Adjust these keys based on what you actually save in the DB for this feature.
-        $permSql = "SELECT COUNT(*) as cnt FROM portal_user_access WHERE username = ? AND perm_key IN ('user_management', 'admin_tab', 'new_employee', 'admin_access')";
-        $permStmt = sqlsrv_query($conn, $permSql, array($_SESSION['username']));
-        if ($permStmt && $row = sqlsrv_fetch_array($permStmt, SQLSRV_FETCH_ASSOC)) {
+        $permSql = "SELECT COUNT(*) as cnt FROM prtl_portal_user_access WHERE username = ? AND perm_key IN ('user_management', 'admin_tab', 'new_employee', 'admin_access')";
+        $permStmt = $conn->prepare($permSql);
+    $permStmt->execute(array($_SESSION['username']));
+        if ($permStmt && $row = $permStmt->fetch(PDO::FETCH_ASSOC)) {
             if ($row['cnt'] > 0) {
                 $hasAccess = true;
             }
@@ -36,15 +36,15 @@ if (!$hasAccess) {
 
 $query = "SELECT u.user_id, u.username, u.role, u.empcode, u.department, u.status, u.created_at,
                  ml.FirstName, ml.LastName, ml.PositionTitle
-          FROM LRNPH.dbo.lrnph_users u
-          LEFT JOIN LRNPH_E.dbo.lrn_master_list ml ON u.username = ml.BiometricsID
+          FROM prtl_lrnph_users u
+          LEFT JOIN prtl_lrn_master_list ml ON u.username = ml.BiometricsID
           WHERE ml.isActive = 1
           ORDER BY u.created_at DESC";
-$stmt = sqlsrv_query($conn, $query);
+$stmt = $conn->query($query);
 
 $users = [];
 if ($stmt) {
-    while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         if ($row['created_at']) {
             $row['created_at'] = $row['created_at']->format('Y-m-d H:i');
         }

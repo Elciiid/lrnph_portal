@@ -1,7 +1,5 @@
 <?php
 // Standalone API for ChatNow (Admin Portal Version)
-session_start();
-
 // Ensure authenticated
 if (!isset($_SESSION['username'])) {
     http_response_code(401);
@@ -51,18 +49,18 @@ function json_out($arr, $code = 200)
 
 // Ensure schema exists
 $schemaSQL = "
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserPresence]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserPresence]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE dbo.UserPresence (
+    CREATE TABLE prtl_UserPresence (
         user_name NVARCHAR(150) NOT NULL PRIMARY KEY,
         status NVARCHAR(10) NOT NULL DEFAULT 'offline',
         last_seen DATETIME NOT NULL DEFAULT GETDATE()
     );
 END;
 
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserNotes]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserNotes]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE dbo.UserNotes (
+    CREATE TABLE prtl_UserNotes (
         username NVARCHAR(150) NOT NULL PRIMARY KEY,
         note_text NVARCHAR(60) NOT NULL,
         image_path NVARCHAR(255) NULL,
@@ -72,14 +70,14 @@ END;
 ELSE
 BEGIN
     -- Ensure image_path column exists if table was already created
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[UserNotes]') AND name = 'image_path')
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_UserNotes]') AND name = 'image_path')
     BEGIN
-        ALTER TABLE dbo.UserNotes ADD image_path NVARCHAR(255) NULL;
+        ALTER TABLE prtl_UserNotes ADD image_path NVARCHAR(255) NULL;
     END
 
-    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[StoryViews]') AND type in (N'U'))
+    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_StoryViews]') AND type in (N'U'))
     BEGIN
-        CREATE TABLE dbo.StoryViews (
+        CREATE TABLE prtl_StoryViews (
             viewer_name NVARCHAR(150) NOT NULL,
             story_owner_name NVARCHAR(150) NOT NULL,
             last_viewed_at DATETIME NOT NULL DEFAULT GETDATE(),
@@ -89,23 +87,23 @@ BEGIN
     END
     ELSE
     BEGIN
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[StoryViews]') AND name = 'reaction')
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_StoryViews]') AND name = 'reaction')
         BEGIN
-            ALTER TABLE dbo.StoryViews ADD reaction NVARCHAR(50) NULL;
+            ALTER TABLE prtl_StoryViews ADD reaction NVARCHAR(50) NULL;
         END
     END
-    -- Ensure Messages table has reply_to_id
-    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Messages]') AND type in (N'U'))
+    -- Ensure prtl_Messages table has reply_to_id
+    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_Messages]') AND type in (N'U'))
     BEGIN
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Messages]') AND name = 'reply_to_id')
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[prtl_Messages]') AND name = 'reply_to_id')
         BEGIN
-            ALTER TABLE dbo.Messages ADD reply_to_id INT NULL;
+            ALTER TABLE prtl_Messages ADD reply_to_id INT NULL;
         END
     END
 END;
-    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CallSignals]') AND type in (N'U'))
+    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[prtl_CallSignals]') AND type in (N'U'))
     BEGIN
-        CREATE TABLE dbo.CallSignals (
+        CREATE TABLE prtl_CallSignals (
             id INT IDENTITY(1,1) PRIMARY KEY,
             caller_name NVARCHAR(150) NOT NULL,
             receiver_name NVARCHAR(150) NOT NULL,
@@ -120,10 +118,10 @@ END;
 sqlsrv_query($mssql, $schemaSQL);
 
 // Cleanup old story views (older than 24 hours)
-sqlsrv_query($mssql, "DELETE FROM dbo.StoryViews WHERE last_viewed_at < DATEADD(hour, -24, GETDATE())");
+sqlsrv_query($mssql, "DELETE FROM prtl_StoryViews WHERE last_viewed_at < DATEADD(hour, -24, GETDATE())");
 
 // Cleanup old call signals (older than 1 hour)
-sqlsrv_query($mssql, "DELETE FROM dbo.CallSignals WHERE updated_at < DATEADD(hour, -1, GETDATE())");
+sqlsrv_query($mssql, "DELETE FROM prtl_CallSignals WHERE updated_at < DATEADD(hour, -1, GETDATE())");
 
 // --- API Router ---
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -133,16 +131,16 @@ if ($action === 'start_call') {
     $receiver = $_POST['receiver'];
 
     // End any existing calls for caller/receiver
-    sqlsrv_query($mssql, "UPDATE dbo.CallSignals SET status = 'ended', updated_at = GETDATE() WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')", [$caller, $caller]);
-    sqlsrv_query($mssql, "UPDATE dbo.CallSignals SET status = 'ended', updated_at = GETDATE() WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')", [$receiver, $receiver]);
+    sqlsrv_query($mssql, "UPDATE prtl_CallSignals SET status = 'ended', updated_at = GETDATE() WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')", [$caller, $caller]);
+    sqlsrv_query($mssql, "UPDATE prtl_CallSignals SET status = 'ended', updated_at = GETDATE() WHERE (caller_name = ? OR receiver_name = ?) AND status IN ('ringing', 'accepted')", [$receiver, $receiver]);
 
-    $sql = "INSERT INTO dbo.CallSignals (caller_name, receiver_name, status) VALUES (?, ?, 'ringing')";
+    $sql = "INSERT INTO prtl_CallSignals (caller_name, receiver_name, status) VALUES (?, ?, 'ringing')";
     $res = sqlsrv_query($mssql, $sql, [$caller, $receiver]);
 
     if ($res) {
         echo json_encode(['ok' => true]);
     } else {
-        echo json_encode(['ok' => false, 'error' => 'Failed to start call: ' . print_r(sqlsrv_errors(), true)]);
+        echo json_encode(['ok' => false, 'error' => 'Failed to start call: ' . print_r(['error' => 'Database error occurred'], true)]);
     }
     exit;
 }
@@ -152,11 +150,11 @@ if ($action === 'check_call_status') {
     $cid = $_GET['cid'] ?? 0;
 
     // Check if someone is calling ME (Incoming)
-    $incoming = sqlsrv_query($mssql, "SELECT TOP 1 * FROM dbo.CallSignals WHERE receiver_name = ? AND status = 'ringing' ORDER BY created_at DESC", [$me]);
-    if ($incoming && $row = sqlsrv_fetch_array($incoming, SQLSRV_FETCH_ASSOC)) {
+    $incoming = sqlsrv_query($mssql, "SELECT TOP 1 * FROM prtl_CallSignals WHERE receiver_name = ? AND status = 'ringing' ORDER BY created_at DESC", [$me]);
+    if ($incoming && $row = $incoming->fetch(PDO::FETCH_ASSOC)) {
         // Fetch caller's EmployeeID for photo
         $callerName = $row['caller_name'];
-        $hq = sqlsrv_query($mssql, "SELECT TOP 1 EmployeeID FROM LRNPH_E.dbo.lrn_master_list WHERE REPLACE(REPLACE(LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName)), '  ', ' '), '  ', ' ') = ?", [$callerName]);
+        $hq = sqlsrv_query($mssql, "SELECT TOP 1 EmployeeID FROM prtl_lrn_master_list WHERE REPLACE(REPLACE(LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName)), '  ', ' '), '  ', ' ') = ?", [$callerName]);
         $eid = ($hq && $hr = sqlsrv_fetch_array($hq)) ? $hr['EmployeeID'] : '';
 
         echo json_encode(['ok' => true, 'type' => 'incoming', 'caller' => $callerName, 'eid' => $eid, 'call_id' => $row['id']]);
@@ -164,8 +162,8 @@ if ($action === 'check_call_status') {
     }
 
     // Check status of my OUTGOING call
-    $outgoing = sqlsrv_query($mssql, "SELECT TOP 1 * FROM dbo.CallSignals WHERE caller_name = ? AND status IN ('ringing', 'accepted', 'declined', 'ended') ORDER BY created_at DESC", [$me]);
-    if ($outgoing && $row = sqlsrv_fetch_array($outgoing, SQLSRV_FETCH_ASSOC)) {
+    $outgoing = sqlsrv_query($mssql, "SELECT TOP 1 * FROM prtl_CallSignals WHERE caller_name = ? AND status IN ('ringing', 'accepted', 'declined', 'ended') ORDER BY created_at DESC", [$me]);
+    if ($outgoing && $row = $outgoing->fetch(PDO::FETCH_ASSOC)) {
         echo json_encode(['ok' => true, 'type' => 'outgoing', 'status' => $row['status'], 'call_id' => $row['id']]);
         exit;
     }
@@ -179,7 +177,7 @@ if ($action === 'handle_call_action') {
     $callId = $_POST['call_id'];
     $newStatus = $_POST['status']; // accepted, declined, ended
 
-    $sql = "UPDATE dbo.CallSignals SET status = ?, updated_at = GETDATE() WHERE id = ?";
+    $sql = "UPDATE prtl_CallSignals SET status = ?, updated_at = GETDATE() WHERE id = ?";
     $res = sqlsrv_query($mssql, $sql, [$newStatus, $callId]);
 
     if ($res) {
@@ -197,7 +195,7 @@ function set_user_presence($conn, string $name, string $status = 'online'): void
         return;
     sqlsrv_query(
         $conn,
-        "MERGE dbo.UserPresence AS t
+        "MERGE prtl_UserPresence AS t
          USING (SELECT ? AS user_name, ? AS status) AS s
          ON t.user_name = s.user_name
          WHEN MATCHED THEN
@@ -218,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // --- Delete Story (Image only) ---
     if ($action === 'delete_story') {
-        sqlsrv_query($mssql, "UPDATE dbo.UserNotes SET image_path = NULL, updated_at = GETDATE() WHERE username = ?", [$fullname]);
+        sqlsrv_query($mssql, "UPDATE prtl_UserNotes SET image_path = NULL, updated_at = GETDATE() WHERE username = ?", [$fullname]);
         json_out(['ok' => true]);
     }
 
@@ -226,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'mark_story_seen') {
         $owner = trim($_POST['owner'] ?? '');
         if ($owner !== '') {
-            $sql = "MERGE dbo.StoryViews AS t
+            $sql = "MERGE prtl_StoryViews AS t
                     USING (SELECT ? AS viewer, ? AS owner) AS s
                     ON t.viewer_name = s.viewer AND t.story_owner_name = s.owner
                     WHEN MATCHED THEN UPDATE SET last_viewed_at = GETDATE()
@@ -261,12 +259,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($noteText === '' && $imagePath === null) {
             // If they are clearing both, delete the node entirely
-            sqlsrv_query($mssql, "DELETE FROM dbo.UserNotes WHERE username = ?", [$fullname]);
+            sqlsrv_query($mssql, "DELETE FROM prtl_UserNotes WHERE username = ?", [$fullname]);
         } else {
             // Keep existing image if they are just updating text and didn't upload a new one
             if ($imagePath === null) {
                 $mergeSql = "
-                    MERGE dbo.UserNotes AS t
+                    MERGE prtl_UserNotes AS t
                     USING (SELECT ? AS username, ? AS note_text) AS s
                     ON t.username = s.username
                     WHEN MATCHED THEN UPDATE SET note_text = s.note_text, updated_at = GETDATE()
@@ -275,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 sqlsrv_query($mssql, $mergeSql, [$fullname, $noteText]);
             } else {
                 $mergeSql = "
-                    MERGE dbo.UserNotes AS t
+                    MERGE prtl_UserNotes AS t
                     USING (SELECT ? AS username, ? AS note_text, ? AS image_path) AS s
                     ON t.username = s.username
                     WHEN MATCHED THEN UPDATE SET note_text = s.note_text, image_path = s.image_path, updated_at = GETDATE()
@@ -304,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $stmt = sqlsrv_query(
             $mssql,
-            "INSERT INTO dbo.Conversations (name, created_by) OUTPUT INSERTED.id VALUES (?, ?)",
+            "INSERT INTO prtl_Conversations (name, created_by) OUTPUT INSERTED.id VALUES (?, ?)",
             [$groupName, $creator]
         );
 
@@ -317,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cid = (int) $row[0];
 
         // Add creator
-        sqlsrv_query($mssql, "INSERT INTO dbo.ConversationParticipants (conversation_id, participant_name) VALUES (?, ?)", [$cid, $creator]);
+        sqlsrv_query($mssql, "INSERT INTO prtl_ConversationParticipants (conversation_id, participant_name) VALUES (?, ?)", [$cid, $creator]);
 
         // Add members
         $seen = [$creator => true];
@@ -326,7 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $b = trim($m['bio'] ?? ''); // we might not use bio logic here but keeping compat
             if ($n !== '' && !isset($seen[$n])) {
                 $seen[$n] = true;
-                sqlsrv_query($mssql, "INSERT INTO dbo.ConversationParticipants (conversation_id, participant_name, participant_bio) VALUES (?, ?, ?)", [$cid, $n, $b ?: null]);
+                sqlsrv_query($mssql, "INSERT INTO prtl_ConversationParticipants (conversation_id, participant_name, participant_bio) VALUES (?, ?, ?)", [$cid, $n, $b ?: null]);
             }
         }
 
@@ -336,7 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // --- Search Users (for adding to group) ---
     // This is missing in the original msg.php snippet trace but usually required. 
-    // Adapting to search LRNPH_E.dbo.lrn_master_list
+    // Adapting to search prtl_lrn_master_list
     if ($action === 'search_users') {
         $q = trim($_POST['q'] ?? '');
         if (strlen($q) < 2)
@@ -350,11 +348,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Search both Master List and OJT Employees
         $sql = "SELECT TOP 15 name, Department, EmployeeID FROM (
                     SELECT (LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName))) as name, Department, EmployeeID, 1 as priority
-                    FROM LRNPH_E.dbo.lrn_master_list 
+                    FROM prtl_lrn_master_list 
                     WHERE (FirstName LIKE ? OR LastName LIKE ? OR (LTRIM(RTRIM(FirstName)) + ' ' + LTRIM(RTRIM(LastName))) LIKE ?) AND isActive = 1
                     UNION ALL
                     SELECT full_name as name, department as Department, employee_id as EmployeeID, 2 as priority
-                    FROM LRNPH_E.app.app_ojt_employees
+                    FROM prtl_app_ojt_employees
                     WHERE full_name LIKE ?
                 ) t
                 ORDER BY priority, name";
@@ -362,11 +360,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $stmt = sqlsrv_query($mssql, $sql, $param);
         if ($stmt === false) {
-            json_out(['ok' => false, 'error' => 'Search failed', 'd' => sqlsrv_errors()]);
+            json_out(['ok' => false, 'error' => 'Search failed', 'd' => ['error' => 'Database error occurred']]);
         }
 
         $res = [];
-        while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $res[] = [
                 'name' => preg_replace('/\s+/', ' ', trim($row['name'])),
                 'dept' => $row['Department'] ?: 'OJT',
@@ -386,12 +384,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                lm.message AS last_message,
                lm.attachment_name AS last_attachment,
                lm.sent_at AS last_time
-        FROM dbo.Conversations c
-        INNER JOIN dbo.ConversationParticipants p
+        FROM prtl_Conversations c
+        INNER JOIN prtl_ConversationParticipants p
             ON p.conversation_id = c.id AND p.participant_name = ?
         OUTER APPLY (
             SELECT TOP 1 m.id, m.sender, m.message, m.attachment_name, m.sent_at
-            FROM dbo.Messages m
+            FROM prtl_Messages m
             WHERE m.conversation_id = c.id
             ORDER BY m.sent_at DESC, m.id DESC
         ) lm
@@ -400,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $st = sqlsrv_query($mssql, $sql, [$me]);
         $rows = [];
         if ($st) {
-            while ($r = sqlsrv_fetch_array($st, SQLSRV_FETCH_ASSOC)) {
+            while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
                 $rows[] = [
                     'id' => (int) $r['id'],
                     'name' => $r['name'],
@@ -422,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             SELECT
               CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN m.sender ELSE ISNULL(m.receiver,'') END AS u1,
               CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN ISNULL(m.receiver,'') ELSE m.sender END AS u2
-            FROM dbo.Messages m
+            FROM prtl_Messages m
             WHERE m.receiver IS NOT NULL
               AND (m.sender = ? OR m.receiver = ?)
             GROUP BY CASE WHEN m.sender <= ISNULL(m.receiver,'') THEN m.sender ELSE ISNULL(m.receiver,'') END,
@@ -434,7 +432,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
               m.id, m.sender, m.message, m.sent_at,
               ROW_NUMBER() OVER (PARTITION BY c.u1, c.u2 ORDER BY m.sent_at DESC, m.id DESC) AS rn
             FROM convs c
-            JOIN dbo.Messages m
+            JOIN prtl_Messages m
               ON ((m.sender = c.u1 AND m.receiver = c.u2) OR (m.sender = c.u2 AND m.receiver = c.u1))
         )
         SELECT u1, u2, id, sender, message, sent_at
@@ -445,7 +443,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $st = sqlsrv_query($mssql, $sql, [$me, $me]);
         $rows = [];
         if ($st) {
-            while ($r = sqlsrv_fetch_array($st, SQLSRV_FETCH_ASSOC)) {
+            while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
                 $other = ($r['u1'] === $me) ? ($r['u2'] ?? '') : ($r['u1'] ?? '');
                 if ($other === '')
                     continue;
@@ -460,7 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         json_out(['ok' => true, 'list' => $rows]);
     }
 
-    // --- Fetch Group Messages ---
+    // --- Fetch Group prtl_Messages ---
     if ($action === 'fetch_group_messages') {
         $cid = (int) ($_POST['cid'] ?? 0);
         $rows = [];
@@ -468,13 +466,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $sql = "SELECT m.id, m.sender, m.message, m.attachment_path, m.attachment_name, m.sent_at, m.reply_to_id, 
                            e.EmployeeID,
                            r.sender as reply_sender, r.message as reply_text
-                    FROM dbo.Messages m
-                    LEFT JOIN LRNPH_E.dbo.lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
-                    LEFT JOIN dbo.Messages r ON m.reply_to_id = r.id
+                    FROM prtl_Messages m
+                    LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
+                    LEFT JOIN prtl_Messages r ON m.reply_to_id = r.id
                     WHERE m.conversation_id = ? ORDER BY m.sent_at ASC";
             $st = sqlsrv_query($mssql, $sql, [$cid]);
             if ($st) {
-                while ($r = sqlsrv_fetch_array($st, SQLSRV_FETCH_ASSOC)) {
+                while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
                     $rows[] = [
                         'id' => (int) $r['id'],
                         'sender' => $r['sender'],
@@ -526,11 +524,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($cid > 0 && ($msg !== '' || $attachmentPath)) {
             $replyTo = !empty($_POST['reply_to']) ? (int) $_POST['reply_to'] : null;
-            $sql = "INSERT INTO dbo.Messages (conversation_id, sender, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+            $sql = "INSERT INTO prtl_Messages (conversation_id, sender, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
 
             $stmt = sqlsrv_query($mssql, $sql, [$cid, $fullname, $msg, $attachmentPath, $attachmentName, $replyTo]);
             if ($stmt === false) {
-                $errors = sqlsrv_errors();
+                $errors = ['error' => 'Database error occurred'];
                 $errorDetails = '';
                 if ($errors) {
                     foreach ($errors as $error) {
@@ -544,7 +542,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         json_out(['ok' => false, 'error' => 'Invalid message']);
     }
 
-    // --- Fetch DM Messages ---
+    // --- Fetch DM prtl_Messages ---
     if ($action === 'fetch_dm_messages') {
         $other = trim($_POST['other'] ?? '');
         $rows = [];
@@ -552,16 +550,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $sql = "SELECT m.id, m.sender, m.message, m.attachment_path, m.attachment_name, m.sent_at, m.reply_to_id,
                            e.EmployeeID,
                            r.sender as reply_sender, r.message as reply_text
-                    FROM dbo.Messages m
-                    LEFT JOIN LRNPH_E.dbo.lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
-                    LEFT JOIN dbo.Messages r ON m.reply_to_id = r.id
+                    FROM prtl_Messages m
+                    LEFT JOIN prtl_lrn_master_list e ON REPLACE(REPLACE(LTRIM(RTRIM(e.FirstName)) + ' ' + LTRIM(RTRIM(e.LastName)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ')
+                    LEFT JOIN prtl_Messages r ON m.reply_to_id = r.id
                     WHERE (REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(m.receiver)), '  ', ' '), '  ', ' ') = ?) 
                        OR (REPLACE(REPLACE(LTRIM(RTRIM(m.sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(m.receiver)), '  ', ' '), '  ', ' ') = ?) 
                     ORDER BY m.sent_at ASC";
             $st = sqlsrv_query($mssql, $sql, [$fullname, $other, $other, $fullname]);
 
             if ($st) {
-                while ($r = sqlsrv_fetch_array($st, SQLSRV_FETCH_ASSOC)) {
+                while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
                     $rows[] = [
                         'id' => (int) $r['id'],
                         'sender' => $r['sender'],
@@ -602,7 +600,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         if ($newName !== '') {
-            $sql = "UPDATE dbo.Conversations SET name = ? " . ($photoPath ? ", photo_path = ?" : "") . " WHERE id = ?";
+            $sql = "UPDATE prtl_Conversations SET name = ? " . ($photoPath ? ", photo_path = ?" : "") . " WHERE id = ?";
             $params = $photoPath ? [$newName, $photoPath, $cid] : [$newName, $cid];
             sqlsrv_query($mssql, $sql, $params);
             json_out(['ok' => true]);
@@ -616,11 +614,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $name = trim($_POST['name'] ?? '');
         if ($cid > 0 && $name !== '') {
             // Check if already member
-            $ck = sqlsrv_query($mssql, "SELECT 1 FROM dbo.ConversationParticipants WHERE conversation_id=? AND REPLACE(REPLACE(LTRIM(RTRIM(participant_name)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(?)), '  ', ' '), '  ', ' ')", [$cid, $name]);
+            $ck = sqlsrv_query($mssql, "SELECT 1 FROM prtl_ConversationParticipants WHERE conversation_id=? AND REPLACE(REPLACE(LTRIM(RTRIM(participant_name)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(?)), '  ', ' '), '  ', ' ')", [$cid, $name]);
             if ($ck && sqlsrv_fetch_array($ck)) {
                 json_out(['ok' => false, 'error' => 'Already a member']);
             }
-            sqlsrv_query($mssql, "INSERT INTO dbo.ConversationParticipants (conversation_id, participant_name) VALUES (?, ?)", [$cid, $name]);
+            sqlsrv_query($mssql, "INSERT INTO prtl_ConversationParticipants (conversation_id, participant_name) VALUES (?, ?)", [$cid, $name]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid request']);
@@ -631,7 +629,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cid = (int) ($_POST['cid'] ?? 0);
         $name = trim($_POST['name'] ?? '');
         if ($cid > 0 && $name !== '') {
-            sqlsrv_query($mssql, "DELETE FROM dbo.ConversationParticipants WHERE conversation_id=? AND REPLACE(REPLACE(LTRIM(RTRIM(participant_name)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(?)), '  ', ' '), '  ', ' ')", [$cid, $name]);
+            sqlsrv_query($mssql, "DELETE FROM prtl_ConversationParticipants WHERE conversation_id=? AND REPLACE(REPLACE(LTRIM(RTRIM(participant_name)), '  ', ' '), '  ', ' ') = REPLACE(REPLACE(LTRIM(RTRIM(?)), '  ', ' '), '  ', ' ')", [$cid, $name]);
             json_out(['ok' => true]);
         }
         json_out(['ok' => false, 'error' => 'Invalid request']);
@@ -670,7 +668,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($to !== '' && ($msg !== '' || $attachmentPath)) {
             $replyTo = !empty($_POST['reply_to']) ? (int) $_POST['reply_to'] : null;
-            $sql = "INSERT INTO dbo.Messages (sender, receiver, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+            $sql = "INSERT INTO prtl_Messages (sender, receiver, message, attachment_path, attachment_name, reply_to_id, sent_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
 
             $stmt = sqlsrv_query($mssql, $sql, [$fullname, $to, $msg, $attachmentPath, $attachmentName, $replyTo]);
             if ($stmt === false) {
@@ -687,8 +685,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $emoji = trim($_POST['emoji'] ?? '');
 
         if ($msgId > 0) {
-            $stmt = sqlsrv_query($mssql, "SELECT message FROM dbo.Messages WHERE id = ?", [$msgId]);
-            if ($stmt && $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+            $stmt = sqlsrv_query($mssql, "SELECT message FROM prtl_Messages WHERE id = ?", [$msgId]);
+            if ($stmt && $row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $msgText = $row['message'] ?? '';
 
                 // Check what the current reaction is
@@ -705,7 +703,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $msgText .= ' [React:' . $emoji . ']';
                 }
 
-                sqlsrv_query($mssql, "UPDATE dbo.Messages SET message = ? WHERE id = ?", [$msgText, $msgId]);
+                sqlsrv_query($mssql, "UPDATE prtl_Messages SET message = ? WHERE id = ?", [$msgText, $msgId]);
                 json_out(['ok' => true]);
             }
         }
@@ -717,7 +715,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $owner = trim($_POST['owner'] ?? '');
         $emoji = trim($_POST['emoji'] ?? '');
         if ($owner !== '') {
-            $sql = "MERGE dbo.StoryViews AS t
+            $sql = "MERGE prtl_StoryViews AS t
                     USING (SELECT ? AS viewer, ? AS owner) AS s
                     ON t.viewer_name = s.viewer AND t.story_owner_name = s.owner
                     WHEN MATCHED THEN UPDATE SET reaction = ?, last_viewed_at = GETDATE()
@@ -732,7 +730,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'delete_message') {
         $msgId = (int) ($_POST['msg_id'] ?? 0);
         if ($msgId > 0) {
-            $sql = "DELETE FROM dbo.Messages WHERE id = ? AND REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ?";
+            $sql = "DELETE FROM prtl_Messages WHERE id = ? AND REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ?";
             sqlsrv_query($mssql, $sql, [$msgId, $fullname]);
             json_out(['ok' => true]);
         }
@@ -745,12 +743,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $other = trim($_POST['other'] ?? '');
 
         if ($cid > 0) {
-            sqlsrv_query($mssql, "DELETE FROM dbo.Messages WHERE conversation_id = ?", [$cid]);
-            sqlsrv_query($mssql, "DELETE FROM dbo.ConversationParticipants WHERE conversation_id = ?", [$cid]);
-            sqlsrv_query($mssql, "DELETE FROM dbo.Conversations WHERE id = ?", [$cid]);
+            sqlsrv_query($mssql, "DELETE FROM prtl_Messages WHERE conversation_id = ?", [$cid]);
+            sqlsrv_query($mssql, "DELETE FROM prtl_ConversationParticipants WHERE conversation_id = ?", [$cid]);
+            sqlsrv_query($mssql, "DELETE FROM prtl_Conversations WHERE id = ?", [$cid]);
             json_out(['ok' => true]);
         } elseif ($other !== '') {
-            $sql = "DELETE FROM dbo.Messages WHERE (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?) OR (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?)";
+            $sql = "DELETE FROM prtl_Messages WHERE (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?) OR (REPLACE(REPLACE(LTRIM(RTRIM(sender)), '  ', ' '), '  ', ' ') = ? AND REPLACE(REPLACE(LTRIM(RTRIM(receiver)), '  ', ' '), '  ', ' ') = ?)";
             sqlsrv_query($mssql, $sql, [$fullname, $other, $other, $fullname]);
             json_out(['ok' => true]);
         }

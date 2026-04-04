@@ -3,33 +3,33 @@
 
 // Configuration for dynamic access control (Same as Sidebar)
 // Fetch Core Access from Database
-$coreAccessQuery = "SELECT * FROM portal_CoreAccess ORDER BY ID ASC";
-$coreAccessStmt = sqlsrv_query($conn, $coreAccessQuery);
+$coreAccessQuery = "SELECT * FROM prtl_portal_CoreAccess ORDER BY ID ASC";
+$coreAccessStmt = $conn->query($coreAccessQuery);
 $coreAccessList = [];
 if ($coreAccessStmt) {
-    while ($row = sqlsrv_fetch_array($coreAccessStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $coreAccessStmt->fetch(PDO::FETCH_ASSOC)) {
         $coreAccessList[] = $row;
     }
 }
 
 // Fetch App Modules from Database
-$appModulesQuery = "SELECT * FROM portal_AppModules ORDER BY ID ASC";
-$appModulesStmt = sqlsrv_query($conn, $appModulesQuery);
+$appModulesQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY ID ASC";
+$appModulesStmt = $conn->query($appModulesQuery);
 $menuConfig = [];
 
 // Fetch Module Icons dynamically
 $iconMap = [];
-$modIconsQuery = "SELECT module_name, module_icon FROM portal_Modules";
-$modIconsStmt = sqlsrv_query($conn, $modIconsQuery);
+$modIconsQuery = "SELECT module_name, module_icon FROM prtl_portal_Modules";
+$modIconsStmt = $conn->query($modIconsQuery);
 if ($modIconsStmt) {
-    while ($mRow = sqlsrv_fetch_array($modIconsStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($mRow = $modIconsStmt->fetch(PDO::FETCH_ASSOC)) {
         $mKey = strtolower(str_replace(' ', '_', trim($mRow['module_name'])));
         $iconMap[$mKey] = $mRow['module_icon'];
     }
 }
 
 if ($appModulesStmt) {
-    while ($row = sqlsrv_fetch_array($appModulesStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $appModulesStmt->fetch(PDO::FETCH_ASSOC)) {
         $perm = trim($row['perm_key']);
         
         // Deduplication removed to allow module-specific tracking
@@ -64,18 +64,18 @@ if ($appModulesStmt) {
 // We fetch users first, then group them in PHP
 
 $usersQuery = "SELECT lu.username, lu.status, lu.role, ml.FirstName, ml.LastName, ml.Department, ml.PositionTitle, ml.EmployeeID
-               FROM LRNPH.dbo.lrnph_users lu
-               INNER JOIN LRNPH_E.dbo.lrn_master_list ml ON lu.username = ml.BiometricsID
+               FROM prtl_lrnph_users lu
+               INNER JOIN prtl_lrn_master_list ml ON lu.username = ml.BiometricsID
                WHERE ml.isActive = 1
                ORDER BY ml.LastName ASC";
-$usersStmt = sqlsrv_query($conn, $usersQuery);
+$usersStmt = $conn->query($usersQuery);
 
 $groupedUsers = [];
 $totalUsers = 0;
 
 $seenUsers = [];
 if ($usersStmt) {
-    while ($row = sqlsrv_fetch_array($usersStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $usersStmt->fetch(PDO::FETCH_ASSOC)) {
         // Prevent duplicates
         if (isset($seenUsers[$row['username']])) {
             continue;
@@ -93,11 +93,11 @@ if ($usersStmt) {
 ksort($groupedUsers); // Sort departments alphabetically
 
 // Fetch permissions and merge
-$allPermsQuery = "SELECT username, perm_key FROM portal_user_access";
-$allPermsStmt = sqlsrv_query($conn, $allPermsQuery);
+$allPermsQuery = "SELECT username, perm_key FROM prtl_portal_user_access";
+$allPermsStmt = $conn->query($allPermsQuery);
 $userPermissions = [];
 if ($allPermsStmt) {
-    while ($pRow = sqlsrv_fetch_array($allPermsStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($pRow = $allPermsStmt->fetch(PDO::FETCH_ASSOC)) {
         $uKey = strtoupper(trim((string) $pRow['username']));
         $pKey = strtolower(trim((string) $pRow['perm_key']));
         $userPermissions[$uKey][] = $pKey;
@@ -150,7 +150,7 @@ unset($u);
         </div>
     </div>
 
-    <!-- Alert Messages (Same as before) -->
+    <!-- Alert prtl_Messages (Same as before) -->
     <?php if (isset($_GET['error'])): ?>
         <div class="bg-red-50 text-red-500 p-4 rounded-xl border border-red-100 flex items-center gap-3">
             <i class="fa-solid fa-circle-exclamation"></i>

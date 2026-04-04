@@ -2,10 +2,10 @@
 // Fetch Departments for the dropdown
 $departments = [];
 if (isset($conn)) {
-    $deptQuery = "SELECT DISTINCT Department FROM LRNPH_E.dbo.lrn_master_list WHERE isActive = 1 ORDER BY Department ASC";
-    $deptStmt = sqlsrv_query($conn, $deptQuery);
+    $deptQuery = "SELECT DISTINCT Department FROM prtl_lrn_master_list WHERE isActive = 1 ORDER BY Department ASC";
+    $deptStmt = $conn->query($deptQuery);
     if ($deptStmt) {
-        while ($row = sqlsrv_fetch_array($deptStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $deptStmt->fetch(PDO::FETCH_ASSOC)) {
             $departments[] = $row['Department'];
         }
     }

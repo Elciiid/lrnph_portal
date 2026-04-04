@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once 'includes/db.php';
+require_once __DIR__ . '/includes/db.php';
 
 $error = '';
 
@@ -9,49 +8,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST["password"] ?? "";
 
     if (!empty($username) && !empty($password)) {
-        $query = "SELECT lu.username, lu.password, lu.status, ml.FirstName + ' ' + ml.LastName as fullname, ml.EmployeeID, ml.PositionTitle, ml.Department, ml.isActive 
-                  FROM LRNPH.dbo.lrnph_users lu 
-                  LEFT JOIN LRNPH_E.dbo.lrn_master_list ml ON lu.username = ml.BiometricsID 
+        $query = "SELECT lu.username, lu.password, lu.status, CONCAT(ml.\"FirstName\", ' ', ml.\"LastName\") as fullname, ml.\"EmployeeID\", ml.\"PositionTitle\", ml.\"Department\", ml.\"isActive\" 
+                  FROM prtl_lrnph_users lu 
+                  LEFT JOIN prtl_lrn_master_list ml ON lu.username = ml.\"BiometricsID\" 
                   WHERE lu.username = ?";
-        $params = array($username);
-        $stmt = sqlsrv_query($conn, $query, $params);
+        
+        try {
+            $stmt = $conn->prepare($query);
+            $stmt->execute([$username]);
 
-        if ($stmt === false) {
-            // Catch SQL Errors (e.g. invalid column)
-            $error = "SQL Error: " . print_r(sqlsrv_errors(), true);
-        } elseif ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-            // Check status logic we added before
-            if ($row['status'] !== 'active') {
-                $error = "Your account is inactive.";
-            } elseif (password_verify($password, $row['password'])) {
-                $_SESSION['username'] = $row['username'];
-                $_SESSION['fullname'] = $row['fullname'] ?? $row['username'];
-                $_SESSION['employee_id'] = $row['EmployeeID'];
-                $_SESSION['position'] = $row['PositionTitle'] ?? 'Staff';
-                $_SESSION['department'] = $row['Department'];
-                $_SESSION['is_active'] = $row['isActive'];
-                $redirect_url = "https://" . $_SERVER['HTTP_HOST'] . str_replace(basename($_SERVER['PHP_SELF']), 'admin.php', $_SERVER['PHP_SELF']);
-                header("Location: $redirect_url");
-                exit();
-            } else {
-                $error = "Invalid password.";
-            }
-        } else {
-            $error = "User not found.";
-            // DEBUG: List available users
-            $dbgSql = "SELECT TOP 5 username, status FROM LRNPH.dbo.lrnph_users";
-            $dbgStmt = sqlsrv_query($conn, $dbgSql);
-            if ($dbgStmt) {
-                $usersList = [];
-                while ($dRow = sqlsrv_fetch_array($dbgStmt, SQLSRV_FETCH_ASSOC)) {
-                    $usersList[] = $dRow['username'] . "(" . $dRow['status'] . ")";
-                }
-                if (!empty($usersList)) {
-                    $error .= " <br><small>Debug: Available (Top 5): " . implode(", ", $usersList) . "</small>";
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Check status logic we added before
+                if ($row['status'] !== 'active') {
+                    $error = "Your account is inactive.";
+                } elseif (password_verify($password, $row['password'])) {
+                    $_SESSION['username'] = $row['username'];
+                    $_SESSION['fullname'] = $row['fullname'] ?? $row['username'];
+                    $_SESSION['employee_id'] = $row['EmployeeID'];
+                    $_SESSION['position'] = $row['PositionTitle'] ?? 'Staff';
+                    $_SESSION['department'] = $row['Department'];
+                    $_SESSION['is_active'] = $row['isActive'];
+                    header("Location: /admin.php");
+                    exit();
                 } else {
-                    $error .= " <br><small>Debug: No users in table.</small>";
+                    $error = "Invalid password.";
+                }
+            } else {
+                $error = "User not found.";
+                // DEBUG: List available users
+                $dbgSql = "SELECT username, status FROM prtl_lrnph_users LIMIT 5";
+                $dbgStmt = $conn->query($dbgSql);
+                if ($dbgStmt) {
+                    $usersList = [];
+                    while ($dRow = $dbgStmt->fetch(PDO::FETCH_ASSOC)) {
+                        $usersList[] = $dRow['username'] . "(" . $dRow['status'] . ")";
+                    }
+                    if (!empty($usersList)) {
+                        $error .= " <br><small>Debug: Available (Top 5): " . implode(", ", $usersList) . "</small>";
+                    } else {
+                        $error .= " <br><small>Debug: No users in table.</small>";
+                    }
                 }
             }
+        } catch (PDOException $e) {
+            // Catch SQL Errors
+            $error = "SQL Error: " . $e->getMessage();
         }
     } else {
         $error = "Please fill in all fields.";

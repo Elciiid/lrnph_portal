@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
 
@@ -29,18 +28,20 @@ if (empty($username) || empty($password) || empty($role) || empty($empcode)) {
 }
 
 // Check for existing username or empcode
-$checkQuery = "SELECT COUNT(*) as count FROM LRNPH.dbo.lrnph_users WHERE username = ? OR empcode = ?";
+$checkQuery = "SELECT COUNT(*) as count FROM prtl_lrnph_users WHERE username = ? OR empcode = ?";
 $checkParams = array($username, $empcode);
-$checkStmt = sqlsrv_query($conn, $checkQuery, $checkParams);
+$checkStmt = $conn->prepare($checkQuery);
+    $checkStmt->execute($checkParams);
 
 if ($checkStmt) {
-    $row = sqlsrv_fetch_array($checkStmt, SQLSRV_FETCH_ASSOC);
+    $row = $checkStmt->fetch(PDO::FETCH_ASSOC);
     if ($row['count'] > 0) {
         // Find which one exists specifically for a better error message
-        $specificCheckQuery = "SELECT (SELECT COUNT(*) FROM LRNPH.dbo.lrnph_users WHERE username = ?) as user_exists,
-                                     (SELECT COUNT(*) FROM LRNPH.dbo.lrnph_users WHERE empcode = ?) as code_exists";
-        $specStmt = sqlsrv_query($conn, $specificCheckQuery, array($username, $empcode));
-        $specRow = sqlsrv_fetch_array($specStmt, SQLSRV_FETCH_ASSOC);
+        $specificCheckQuery = "SELECT (SELECT COUNT(*) FROM prtl_lrnph_users WHERE username = ?) as user_exists,
+                                     (SELECT COUNT(*) FROM prtl_lrnph_users WHERE empcode = ?) as code_exists";
+        $specStmt = $conn->prepare($specificCheckQuery);
+    $specStmt->execute(array($username, $empcode));
+        $specRow = $specStmt->fetch(PDO::FETCH_ASSOC);
 
         if ($specRow['user_exists'] > 0 && $specRow['code_exists'] > 0) {
             $msg = 'Both Username and Employee Code already exist.';
@@ -59,14 +60,15 @@ if ($checkStmt) {
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
 // Target database as requested: LRNPH_OJT
-$query = "INSERT INTO LRNPH.dbo.lrnph_users (username, password, role, empcode, department, status, created_at, updated_at) 
+$query = "INSERT INTO prtl_lrnph_users (username, password, role, empcode, department, status, created_at, updated_at) 
           VALUES (?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
 
 $params = array($username, $hashedPassword, $role, $empcode, $department, $status);
-$stmt = sqlsrv_query($conn, $query, $params);
+$stmt = $conn->prepare($query);
+    $stmt->execute($params);
 
 if ($stmt === false) {
-    $errors = sqlsrv_errors();
+    $errors = ['error' => 'Database error occurred'];
     $errorMessage = 'Database insertion failed.';
     if ($errors) {
         $errorMessage = $errors[0]['message'];

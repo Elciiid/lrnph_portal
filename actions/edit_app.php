@@ -1,7 +1,5 @@
 <?php
-require_once '../includes/db.php';
-session_start();
-
+require_once __DIR__ . '/../includes/db.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id = $_POST['id'];
     $name = $_POST['name'];
@@ -15,16 +13,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         adjustAppSortOrder($conn, $sort_order, $id);
     }
 
-    $sql = "UPDATE portal_apps SET name = ?, url = ?, icon = ?, is_active = ?, sort_order = ? WHERE id = ?";
+    $sql = "UPDATE prtl_portal_apps SET name = ?, url = ?, icon = ?, is_active = ?, sort_order = ? WHERE id = ?";
     $params = array($name, $url, $icon, $is_active, $sort_order, $id);
 
-    $stmt = sqlsrv_query($conn, $sql, $params);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
 
     if ($stmt) {
         header("Location: ../admin.php?page=content");
         exit();
     } else {
-        echo "Error updating record: " . print_r(sqlsrv_errors(), true);
+        echo "Error updating record: " . print_r(['error' => 'Database error occurred'], true);
     }
 }
 ?>

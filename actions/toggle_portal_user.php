@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // Check for permission again
 if (!isset($_SESSION['department']) || !preg_match('/IT|INFORMATION TECHNOLOGY/i', $_SESSION['department'])) {
@@ -18,8 +17,9 @@ if (isset($_GET['username']) && isset($_GET['status'])) {
         exit();
     }
 
-    $sql = "UPDATE LRNPH.dbo.lrnph_users SET status = ? WHERE username = ?";
-    $stmt = sqlsrv_query($conn, $sql, array($newStatus, $username));
+    $sql = "UPDATE prtl_lrnph_users SET status = ? WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(array($newStatus, $username));
 
     if ($stmt) {
         header("Location: ../admin.php?page=user_management&success=status_updated");

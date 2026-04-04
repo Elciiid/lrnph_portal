@@ -13,10 +13,10 @@
     <div class="overflow-y-auto flex-1 pr-2 custom-scrollbar">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
             <?php
-            $appsQuery = "SELECT * FROM portal_apps ORDER BY sort_order ASC, name ASC";
-            $appsStmt = sqlsrv_query($conn, $appsQuery);
+            $appsQuery = "SELECT * FROM prtl_portal_apps ORDER BY sort_order ASC, name ASC";
+            $appsStmt = $conn->query($appsQuery);
             if ($appsStmt) {
-                while ($app = sqlsrv_fetch_array($appsStmt, SQLSRV_FETCH_ASSOC)) {
+                while ($app = $appsStmt->fetch(PDO::FETCH_ASSOC)) {
                     $isActive = $app['is_active'];
                     $statusColor = $isActive ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-50 text-gray-500 border-gray-100';
                     $statusText = $isActive ? 'Active' : 'Hidden';

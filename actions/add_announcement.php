@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $title = trim($_POST['title']);
@@ -35,13 +34,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $image = $_POST['image_url'] ?? '';
     }
 
-    $sql = "INSERT INTO portal_announcements (title, description, image_url, type, is_active, created_by) VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO prtl_portal_announcements (title, description, image_url, type, is_active, created_by) VALUES (?, ?, ?, ?, ?, ?)";
     $params = [$title, $description, $image, $type, $isActive, $createdBy];
 
-    $stmt = sqlsrv_query($conn, $sql, $params);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
 
     if ($stmt === false) {
-        die(print_r(sqlsrv_errors(), true));
+        die(print_r(['error' => 'Database error occurred'], true));
     }
 
     header("Location: ../admin.php?page=announcements");

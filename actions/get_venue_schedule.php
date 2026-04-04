@@ -1,8 +1,6 @@
 <?php
 // actions/get_venue_schedule.php
-require_once '../includes/db.php';
-session_start();
-
+require_once __DIR__ . '/../includes/db.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['username'])) {
@@ -15,10 +13,10 @@ $date = $_GET['date'] ?? date('Y-m-d');
 if (isset($conn)) {
     // 1. Get all active venues
     $venues = [];
-    $vSql = "SELECT venue_name FROM LRNPH_OJT.db_datareader.AP_Venues WHERE is_active = 1 ORDER BY venue_name ASC";
-    $vStmt = sqlsrv_query($conn, $vSql);
+    $vSql = "SELECT venue_name FROM AP_Venues WHERE is_active = 1 ORDER BY venue_name ASC";
+    $vStmt = $conn->query($vSql);
     if ($vStmt) {
-        while ($vRow = sqlsrv_fetch_array($vStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($vRow = $vStmt->fetch(PDO::FETCH_ASSOC)) {
             $venues[$vRow['venue_name']] = [];
         }
     }
@@ -26,14 +24,15 @@ if (isset($conn)) {
     // 2. Get all meetings for this date
     $mSql = "SELECT meeting_name, venue, start_time, end_time, facilitator,
                 ml.FirstName, ml.LastName
-             FROM LRNPH_OJT.db_datareader.AP_Meetings ps
-             LEFT JOIN LRNPH_E.dbo.lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
+             FROM prtl_AP_Meetings ps
+             LEFT JOIN prtl_lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
              WHERE meeting_date = ? AND venue IS NOT NULL AND venue != 'Online'
              ORDER BY start_time ASC";
 
-    $mStmt = sqlsrv_query($conn, $mSql, [$date]);
+    $mStmt = $conn->prepare($mSql);
+    $mStmt->execute([$date]);
     if ($mStmt) {
-        while ($row = sqlsrv_fetch_array($mStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $mStmt->fetch(PDO::FETCH_ASSOC)) {
             $v = $row['venue'];
             // If venue exists in our list (even if custom, but usually we filter by known venues)
             if (!isset($venues[$v])) {

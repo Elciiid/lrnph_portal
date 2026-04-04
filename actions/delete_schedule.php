@@ -1,7 +1,6 @@
 <?php
 // actions/delete_schedule.php
-session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
 
@@ -28,15 +27,16 @@ if (!$planId) {
 }
 
 if (isset($conn)) {
-    // Delete from AP_Meetings (Assuming cascading delete or manual delete of attendees/agenda if FK not set)
+    // Delete from prtl_AP_Meetings (Assuming cascading delete or manual delete of attendees/agenda if FK not set)
     // To be safe, let's delete children first if no cascade
 
     sqlsrv_begin_transaction($conn);
     try {
         // 1. Check Ownership
-        $checkSql = "SELECT facilitator FROM LRNPH_OJT.db_datareader.AP_Meetings WHERE meeting_id = ?";
-        $checkStmt = sqlsrv_query($conn, $checkSql, array($planId));
-        if ($checkStmt && $row = sqlsrv_fetch_array($checkStmt, SQLSRV_FETCH_ASSOC)) {
+        $checkSql = "SELECT facilitator FROM prtl_AP_Meetings WHERE meeting_id = ?";
+        $checkStmt = $conn->prepare($checkSql);
+    $checkStmt->execute(array($planId));
+        if ($checkStmt && $row = $checkStmt->fetch(PDO::FETCH_ASSOC)) {
             if ($row['facilitator'] != $currentUserId) {
                 throw new Exception("Unauthorized: You are not the facilitator.");
             }
@@ -45,23 +45,26 @@ if (isset($conn)) {
         }
 
         // 2. Delete Agendas
-        $delAg = "DELETE FROM LRNPH_OJT.db_datareader.AP_MeetingAgenda WHERE meeting_id = ?";
-        $stmtAg = sqlsrv_query($conn, $delAg, array($planId));
+        $delAg = "DELETE FROM prtl_AP_MeetingAgenda WHERE meeting_id = ?";
+        $stmtAg = $conn->prepare($delAg);
+    $stmtAg->execute(array($planId));
         if ($stmtAg === false) {
             throw new Exception("Failed to delete meeting agenda items.");
         }
 
         // 3. Delete Attendees
-        $delAtt = "DELETE FROM LRNPH_OJT.db_datareader.AP_Attendees WHERE meeting_id = ?";
-        $stmtAtt = sqlsrv_query($conn, $delAtt, array($planId));
+        $delAtt = "DELETE FROM prtl_AP_Attendees WHERE meeting_id = ?";
+        $stmtAtt = $conn->prepare($delAtt);
+    $stmtAtt->execute(array($planId));
         if ($stmtAtt === false) {
             throw new Exception("Failed to delete meeting attendees.");
         }
 
         // 4. Delete Meeting
-        $query = "DELETE FROM LRNPH_OJT.db_datareader.AP_Meetings WHERE meeting_id = ? AND facilitator = ?";
+        $query = "DELETE FROM prtl_AP_Meetings WHERE meeting_id = ? AND facilitator = ?";
         $params = array($planId, $currentUserId);
-        $stmt = sqlsrv_query($conn, $query, $params);
+        $stmt = $conn->prepare($query);
+    $stmt->execute($params);
 
         if ($stmt === false) {
             throw new Exception("Failed to delete meeting record.");

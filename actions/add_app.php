@@ -1,7 +1,5 @@
 <?php
-require_once '../includes/db.php';
-session_start();
-
+require_once __DIR__ . '/../includes/db.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $name = trim($_POST['name']);
     $url = trim($_POST['url']);
@@ -20,13 +18,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 
-    $query = "INSERT INTO portal_apps (name, url, icon, is_active, sort_order) VALUES (?, ?, ?, ?, ?)";
+    $query = "INSERT INTO prtl_portal_apps (name, url, icon, is_active, sort_order) VALUES (?, ?, ?, ?, ?)";
     $params = array($name, $url, $icon, $isActive, $sort_order);
 
-    $stmt = sqlsrv_query($conn, $query, $params);
+    $stmt = $conn->prepare($query);
+    $stmt->execute($params);
 
     if ($stmt === false) {
-        die(print_r(sqlsrv_errors(), true));
+        die(print_r(['error' => 'Database error occurred'], true));
     } else {
         header("Location: ../admin.php?page=content");
         exit;

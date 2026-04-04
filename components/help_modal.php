@@ -284,7 +284,7 @@
                                 the central portal home page.</p>
                         </div>
                         <div class="p-5 rounded-[24px] bg-gradient-to-br from-pink-50 to-white border border-pink-100">
-                            <h4 class="font-bold text-pink-900 text-sm mb-2">Side Messages</h4>
+                            <h4 class="font-bold text-pink-900 text-sm mb-2">Side prtl_Messages</h4>
                             <p class="text-xs text-pink-800/70">Manage the smaller "Pro Tips" or update messages that
                                 appear on the RHS of the public portal.</p>
                         </div>

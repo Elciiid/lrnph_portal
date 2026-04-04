@@ -17,17 +17,16 @@ $page = $_GET['page'] ?? 'dashboard';
 $userPerms = [];
 if (isset($conn) && isset($_SESSION['username'])) {
     // Updated to perm_key
-    $permSql = "SELECT perm_key FROM portal_user_access WHERE username = ?";
-    $permStmt = sqlsrv_query($conn, $permSql, array($_SESSION['username']));
-    if ($permStmt) {
-        while ($pRow = sqlsrv_fetch_array($permStmt, SQLSRV_FETCH_ASSOC)) {
-            $userPerms[] = $pRow['perm_key'];
-        }
+    $permSql = "SELECT perm_key FROM prtl_portal_user_access WHERE username = ?";
+    $permStmt = $conn->prepare($permSql);
+    $permStmt->execute([$_SESSION['username']]);
+    while ($pRow = $permStmt->fetch(PDO::FETCH_ASSOC)) {
+        $userPerms[] = $pRow['perm_key'];
     }
 }
 
 // Default permissions for new users (Unmanaged)
-// If a user has NO records in portal_user_access, we assume they are a standard user
+// If a user has NO records in prtl_portal_user_access, we assume they are a standard user
 // and grant access to Dashboard, Planner, and Common apps by default.
 // Explicitly managed users will have at least 'dashboard' and 'planner' records.
 if (empty($userPerms)) {
@@ -41,14 +40,14 @@ $activeAnnouncements = 0;
 
 if (isset($conn)) {
     // Count Applications
-    $appCountRes = sqlsrv_query($conn, "SELECT COUNT(*) as total FROM portal_apps");
-    if ($appCountRes && $row = sqlsrv_fetch_array($appCountRes, SQLSRV_FETCH_ASSOC)) {
+    $appCountRes = $conn->query("SELECT COUNT(*) as total FROM prtl_portal_apps");
+    if ($appCountRes && $row = $appCountRes->fetch(PDO::FETCH_ASSOC)) {
         $totalApps = $row['total'];
     }
 
     // Count Announcements
-    $annCountRes = sqlsrv_query($conn, "SELECT COUNT(*) as total FROM portal_announcements WHERE is_active = 1");
-    if ($annCountRes && $row = sqlsrv_fetch_array($annCountRes, SQLSRV_FETCH_ASSOC)) {
+    $annCountRes = $conn->query("SELECT COUNT(*) as total FROM prtl_portal_announcements WHERE is_active = 1");
+    if ($annCountRes && $row = $annCountRes->fetch(PDO::FETCH_ASSOC)) {
         $activeAnnouncements = $row['total'];
     }
 
@@ -58,46 +57,48 @@ if (isset($conn)) {
     $today = date('Y-m-d');
 
     // Fetch top 20 upcoming meetings (Facilitator OR Attendee)
-    // We join AP_Attendees to check for participation
-    $schQuery = "SELECT DISTINCT TOP 20 ps.*, cat.category_name
-                 FROM LRNPH_OJT.db_datareader.AP_Meetings ps
-                 LEFT JOIN LRNPH_OJT.db_datareader.AP_Attendees pma ON ps.meeting_id = pma.meeting_id
-                 LEFT JOIN LRNPH_OJT.db_datareader.AP_Categories cat ON ps.category_id = cat.category_id
+    // We join prtl_AP_Attendees to check for participation
+    $schQuery = "SELECT DISTINCT ps.*, cat.category_name
+                 FROM \"prtl_AP_Meetings\" ps
+                 LEFT JOIN \"prtl_AP_Attendees\" pma ON ps.meeting_id = pma.meeting_id
+                 LEFT JOIN \"prtl_AP_Categories\" cat ON ps.category_id = cat.category_id
                  WHERE ps.meeting_date >= ?
                  AND (ps.facilitator = ? OR pma.employee_id = ?) 
-                 ORDER BY ps.meeting_date ASC, ps.start_time ASC";
+                 ORDER BY ps.meeting_date ASC, ps.start_time ASC LIMIT 20";
 
-    $schStmt = sqlsrv_query($conn, $schQuery, array($today, $currentUserId, $currentUserId));
+    $schStmt = $conn->prepare($schQuery);
+    $schStmt->execute([$today, $currentUserId, $currentUserId]);
 
     if ($schStmt) {
-        while ($row = sqlsrv_fetch_array($schStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $schStmt->fetch(PDO::FETCH_ASSOC)) {
             // Fetch Creator (Facilitator) Name
             $creatorName = "Unknown";
             if (!empty($row['facilitator'])) {
-                $creatorSql = "SELECT FirstName, LastName FROM LRNPH_E.dbo.lrn_master_list WHERE BiometricsID = ?";
-                $creatorStmt = sqlsrv_query($conn, $creatorSql, array($row['facilitator']));
-                if ($creatorStmt && $cRow = sqlsrv_fetch_array($creatorStmt, SQLSRV_FETCH_ASSOC)) {
+                $creatorSql = "SELECT \"FirstName\", \"LastName\" FROM prtl_lrn_master_list WHERE \"BiometricsID\" = ?";
+                $creatorStmt = $conn->prepare($creatorSql);
+                $creatorStmt->execute([$row['facilitator']]);
+                if ($cRow = $creatorStmt->fetch(PDO::FETCH_ASSOC)) {
                     $creatorName = $cRow['FirstName'] . ' ' . $cRow['LastName'];
                 } else {
                     $creatorName = $row['facilitator']; // Fallback
                 }
             }
 
-            // Fetch Attendees (Names from AP_Attendees)
+            // Fetch Attendees (Names from prtl_AP_Attendees)
             $attendees = [];
-            $attSql = "SELECT attendee_name FROM LRNPH_OJT.db_datareader.AP_Attendees WHERE meeting_id = ?";
-            $attStmt = sqlsrv_query($conn, $attSql, array($row['meeting_id']));
-            if ($attStmt) {
-                while ($att = sqlsrv_fetch_array($attStmt, SQLSRV_FETCH_ASSOC)) {
-                    $attendees[] = $att['attendee_name'];
-                }
+            $attSql = "SELECT attendee_name FROM \"prtl_AP_Attendees\" WHERE meeting_id = ?";
+            $attStmt = $conn->prepare($attSql);
+            $attStmt->execute([$row['meeting_id']]);
+            while ($att = $attStmt->fetch(PDO::FETCH_ASSOC)) {
+                $attendees[] = $att['attendee_name'];
             }
 
             // Fetch First Agenda Item for Description
             $agendaText = '';
-            $agSql = "SELECT TOP 1 topic FROM LRNPH_OJT.db_datareader.AP_MeetingAgenda WHERE meeting_id = ?";
-            $agStmt = sqlsrv_query($conn, $agSql, array($row['meeting_id']));
-            if ($agStmt && $agRow = sqlsrv_fetch_array($agStmt, SQLSRV_FETCH_ASSOC)) {
+            $agSql = "SELECT topic FROM \"prtl_AP_MeetingAgenda\" WHERE meeting_id = ? LIMIT 1";
+            $agStmt = $conn->prepare($agSql);
+            $agStmt->execute([$row['meeting_id']]);
+            if ($agRow = $agStmt->fetch(PDO::FETCH_ASSOC)) {
                 $agendaText = $agRow['topic'];
             }
 
@@ -113,10 +114,10 @@ if (isset($conn)) {
                 'id' => $row['meeting_id'],
                 'title' => $row['meeting_name'],
                 'description' => $agendaText, // First agenda item
-                'date' => $row['meeting_date']->format('M d, Y'),
-                'time' => $row['start_time']->format('h:i A'),
+                'date' => (new DateTime($row['meeting_date']))->format('M d, Y'),
+                'time' => (new DateTime($row['start_time']))->format('h:i A'),
                 // Map end_time to platform field for list display
-                'platform' => $row['end_time'] ? $row['end_time']->format('H:i') : '',
+                'platform' => $row['end_time'] ? (new DateTime($row['end_time']))->format('H:i') : '',
                 'account' => $subtitle,
                 'image' => !empty($row['image_url']) ? $row['image_url'] : 'assets/lrn-logo.jpg',
                 'creator' => $creatorName,

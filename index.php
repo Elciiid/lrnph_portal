@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once 'includes/db.php';
+require_once __DIR__ . '/includes/db.php';
 // require_once 'includes/auth_session.php'; // Removed to allow public access
 require_once 'includes/photo_helper.php';
 
@@ -14,28 +13,28 @@ $userPhoto = $isLoggedIn ? getEmployeePhotoUrl($_SESSION['employee_id'] ?? '') :
 // Fetch Data
 // 1. Headlines (Headlines)
 $headlines = [];
-$hlQuery = "SELECT TOP 1 * FROM portal_announcements WHERE type = 'headline' AND is_active = 1 ORDER BY created_at DESC";
-$hlStmt = sqlsrv_query($conn, $hlQuery);
-if ($hlStmt && $row = sqlsrv_fetch_array($hlStmt, SQLSRV_FETCH_ASSOC)) {
+$hlQuery = "SELECT * FROM prtl_portal_announcements WHERE type = 'headline' AND is_active = 1 ORDER BY created_at DESC LIMIT 1";
+$hlStmt = $conn->query($hlQuery);
+if ($hlStmt && $row = $hlStmt->fetch(PDO::FETCH_ASSOC)) {
     $headlines[] = $row;
 }
 
 // 2. Apps
 $apps = [];
-$appQuery = "SELECT * FROM portal_apps WHERE is_active = 1 ORDER BY sort_order ASC, name ASC";
-$appStmt = sqlsrv_query($conn, $appQuery);
+$appQuery = "SELECT * FROM prtl_portal_apps WHERE is_active = 1 ORDER BY sort_order ASC, name ASC";
+$appStmt = $conn->query($appQuery);
 if ($appStmt) {
-    while ($row = sqlsrv_fetch_array($appStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $appStmt->fetch(PDO::FETCH_ASSOC)) {
         $apps[] = $row;
     }
 }
 
 // 3. Side Announcements
 $announcements = [];
-$annQuery = "SELECT TOP 10 * FROM portal_announcements WHERE type = 'announcement' AND is_active = 1 ORDER BY created_at DESC";
-$annStmt = sqlsrv_query($conn, $annQuery);
+$annQuery = "SELECT * FROM prtl_portal_announcements WHERE type = 'announcement' AND is_active = 1 ORDER BY created_at DESC LIMIT 10";
+$annStmt = $conn->query($annQuery);
 if ($annStmt) {
-    while ($row = sqlsrv_fetch_array($annStmt, SQLSRV_FETCH_ASSOC)) {
+    while ($row = $annStmt->fetch(PDO::FETCH_ASSOC)) {
         $announcements[] = $row;
     }
 }

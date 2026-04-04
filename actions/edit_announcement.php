@@ -1,7 +1,5 @@
 <?php
-require_once '../includes/db.php';
-session_start();
-
+require_once __DIR__ . '/../includes/db.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id = $_POST['id'];
     $title = $_POST['title'];
@@ -34,16 +32,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    $sql = "UPDATE portal_announcements SET title = ?, description = ?, is_active = ?, image_url = ? WHERE id = ?";
+    $sql = "UPDATE prtl_portal_announcements SET title = ?, description = ?, is_active = ?, image_url = ? WHERE id = ?";
     $params = array($title, $description, $is_active, $image_url, $id);
 
-    $stmt = sqlsrv_query($conn, $sql, $params);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
 
     if ($stmt) {
         header("Location: ../admin.php?page=announcements");
         exit();
     } else {
-        echo "Error updating record: " . print_r(sqlsrv_errors(), true);
+        echo "Error updating record: " . print_r(['error' => 'Database error occurred'], true);
     }
 }
 ?>

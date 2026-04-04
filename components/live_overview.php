@@ -25,20 +25,20 @@ if (isset($conn) && !empty($currentUserId)) {
     // Helper to get base query condition
     // Use facilitator or attendee check
 
-    $baseJoin = "LEFT JOIN LRNPH_OJT.db_datareader.AP_Attendees pma ON ps.meeting_id = pma.meeting_id AND pma.employee_id = ?";
+    $baseJoin = "LEFT JOIN prtl_AP_Attendees pma ON ps.meeting_id = pma.meeting_id AND pma.employee_id = ?";
     $baseWhere = "(ps.facilitator = ? OR pma.employee_id IS NOT NULL)";
     $paramsUser = array($currentUserId, $currentUserId);
 
     // 1. Day Data (Hourly)
     $today = date('Y-m-d');
     $sqlDay = "SELECT DATEPART(hour, start_time) as hr, COUNT(DISTINCT ps.meeting_id) as count 
-               FROM LRNPH_OJT.db_datareader.AP_Meetings ps 
+               FROM prtl_AP_Meetings ps 
                $baseJoin 
                WHERE $baseWhere AND ps.meeting_date = CAST(? AS DATE)
                GROUP BY DATEPART(hour, start_time)";
     $stmtDay = sqlsrv_query($conn, $sqlDay, array_merge($paramsUser, [$today]));
     if ($stmtDay) {
-        while ($row = sqlsrv_fetch_array($stmtDay, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $stmtDay->fetch(PDO::FETCH_ASSOC)) {
             $chartData['day'][$row['hr']] = $row['count'];
             $totals['day'] += $row['count'];
         }
@@ -49,13 +49,13 @@ if (isset($conn) && !empty($currentUserId)) {
     $saturday = date('Y-m-d', strtotime('next Saturday', strtotime('yesterday')));
 
     $sqlWeek = "SELECT ps.meeting_date, COUNT(DISTINCT ps.meeting_id) as count 
-                FROM LRNPH_OJT.db_datareader.AP_Meetings ps 
+                FROM prtl_AP_Meetings ps 
                 $baseJoin 
                 WHERE $baseWhere AND ps.meeting_date BETWEEN ? AND ?
                 GROUP BY ps.meeting_date";
     $stmtWeek = sqlsrv_query($conn, $sqlWeek, array_merge($paramsUser, [$sunday, $saturday]));
     if ($stmtWeek) {
-        while ($row = sqlsrv_fetch_array($stmtWeek, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $stmtWeek->fetch(PDO::FETCH_ASSOC)) {
             $dayIndex = $row['meeting_date']->format('w'); // 0 (Sun) - 6 (Sat)
             $chartData['week'][$dayIndex] = $row['count'];
             $totals['week'] += $row['count'];
@@ -69,13 +69,13 @@ if (isset($conn) && !empty($currentUserId)) {
     $chartData['month'] = array_fill(1, $daysInMonth, 0);
 
     $sqlMonth = "SELECT DAY(ps.meeting_date) as d, COUNT(DISTINCT ps.meeting_id) as count 
-                 FROM LRNPH_OJT.db_datareader.AP_Meetings ps 
+                 FROM prtl_AP_Meetings ps 
                  $baseJoin 
                  WHERE $baseWhere AND ps.meeting_date BETWEEN ? AND ?
                  GROUP BY DAY(ps.meeting_date)";
     $stmtMonth = sqlsrv_query($conn, $sqlMonth, array_merge($paramsUser, [$firstDayMonth, $lastDayMonth]));
     if ($stmtMonth) {
-        while ($row = sqlsrv_fetch_array($stmtMonth, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $stmtMonth->fetch(PDO::FETCH_ASSOC)) {
             $chartData['month'][$row['d']] = $row['count'];
             $totals['month'] += $row['count'];
         }
@@ -86,13 +86,13 @@ if (isset($conn) && !empty($currentUserId)) {
     $lastDayYear = date('Y-12-31');
 
     $sqlYear = "SELECT MONTH(ps.meeting_date) as m, COUNT(DISTINCT ps.meeting_id) as count 
-                FROM LRNPH_OJT.db_datareader.AP_Meetings ps 
+                FROM prtl_AP_Meetings ps 
                 $baseJoin 
                 WHERE $baseWhere AND ps.meeting_date BETWEEN ? AND ?
                 GROUP BY MONTH(ps.meeting_date)";
     $stmtYear = sqlsrv_query($conn, $sqlYear, array_merge($paramsUser, [$firstDayYear, $lastDayYear]));
     if ($stmtYear) {
-        while ($row = sqlsrv_fetch_array($stmtYear, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $stmtYear->fetch(PDO::FETCH_ASSOC)) {
             // Month 1-12 -> Index 0-11
             $chartData['year'][$row['m'] - 1] = $row['count'];
             $totals['year'] += $row['count'];

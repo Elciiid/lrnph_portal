@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
 
@@ -11,21 +11,22 @@ if (!isset($_GET['id'])) {
 $scheduleId = $_GET['id'];
 
 if (isset($conn)) {
-    // 1. Get Meeting Details (AP_Meetings)
+    // 1. Get Meeting Details (prtl_AP_Meetings)
     // Join with Categories for display name
     // Join with Master List for facilitator name
     $sql = "SELECT DISTINCT ps.*, 
             ml.FirstName as CreatorFirst, ml.LastName as CreatorLast,
             cat.category_name
-            FROM LRNPH_OJT.db_datareader.AP_Meetings ps
-            LEFT JOIN LRNPH_E.dbo.lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
-            LEFT JOIN LRNPH_OJT.db_datareader.AP_Categories cat ON ps.category_id = cat.category_id
+            FROM prtl_AP_Meetings ps
+            LEFT JOIN prtl_lrn_master_list ml ON ps.facilitator = ml.BiometricsID COLLATE DATABASE_DEFAULT
+            LEFT JOIN prtl_AP_Categories cat ON ps.category_id = cat.category_id
             WHERE ps.meeting_id = ?";
 
-    $stmt = sqlsrv_query($conn, $sql, array($scheduleId));
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(array($scheduleId));
 
     if ($stmt === false) {
-        $errs = sqlsrv_errors();
+        $errs = ['error' => 'Database error occurred'];
         $msg = "SQL Query Failed: ";
         if ($errs) {
             foreach ($errs as $e)
@@ -39,7 +40,7 @@ if (isset($conn)) {
         exit;
     }
 
-    $schedule = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+    $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Format Times/Dates
     $schedule['date_formatted'] = $schedule['meeting_date']->format('F j, Y');
@@ -57,18 +58,19 @@ if (isset($conn)) {
     }
 
 
-    // 2. Get All Attendees (AP_Attendees)
+    // 2. Get All Attendees (prtl_AP_Attendees)
     // We select attendee_name directly mostly, but if employee_id exists, we could cross check.
     // The table stores the name snapshot, so just use that.
     $attSql = "SELECT attendee_name, department 
-               FROM LRNPH_OJT.db_datareader.AP_Attendees
+               FROM prtl_AP_Attendees
                WHERE meeting_id = ?
                ORDER BY attendee_name ASC";
-    $attStmt = sqlsrv_query($conn, $attSql, array($scheduleId));
+    $attStmt = $conn->prepare($attSql);
+    $attStmt->execute(array($scheduleId));
 
     $attendees = [];
     if ($attStmt) {
-        while ($row = sqlsrv_fetch_array($attStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $attStmt->fetch(PDO::FETCH_ASSOC)) {
             $attendees[] = [
                 'name' => $row['attendee_name'],
                 'dept' => $row['department']
@@ -76,13 +78,14 @@ if (isset($conn)) {
         }
     }
 
-    // 3. Get Agendas (AP_MeetingAgenda)
-    $agendaSql = "SELECT topic FROM LRNPH_OJT.db_datareader.AP_MeetingAgenda WHERE meeting_id = ?";
-    $agendaStmt = sqlsrv_query($conn, $agendaSql, array($scheduleId));
+    // 3. Get Agendas (prtl_AP_MeetingAgenda)
+    $agendaSql = "SELECT topic FROM prtl_AP_MeetingAgenda WHERE meeting_id = ?";
+    $agendaStmt = $conn->prepare($agendaSql);
+    $agendaStmt->execute(array($scheduleId));
 
     $agendas = [];
     if ($agendaStmt) {
-        while ($row = sqlsrv_fetch_array($agendaStmt, SQLSRV_FETCH_ASSOC)) {
+        while ($row = $agendaStmt->fetch(PDO::FETCH_ASSOC)) {
             $agendas[] = $row['topic'];
         }
     }

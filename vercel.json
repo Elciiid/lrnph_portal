@@ -1,0 +1,17 @@
+{
+    "version": 2,
+    "regions": ["sin1"],
+    "builds": [
+        { "src": "assets/**", "use": "@vercel/static" },
+        { "src": "*.css", "use": "@vercel/static" },
+        { "src": "*.html", "use": "@vercel/static" },
+        { "src": "**/*.php", "use": "vercel-php@0.7.2" }
+    ],
+    "routes": [
+        { "src": "/assets/(.*)", "dest": "/assets/$1" },
+        { "src": "^/style\\.css$", "dest": "/style.css" },
+        { "src": "^/([a-zA-Z0-9_\\-]+)\\.html$", "dest": "/$1.html" },
+        { "src": "^/$", "dest": "/index.php" },
+        { "src": "/(.*)", "dest": "/$1" }
+    ]
+}
