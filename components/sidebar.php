@@ -58,7 +58,7 @@
             <ul class="list-none">
                 <?php
                 // Fetch App Modules from Database
-                $appModulesQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, ID ASC";
+                $appModulesQuery = "SELECT * FROM prtl_portal_AppModules ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, \"ID\" ASC";
                 $appModulesStmt = $conn->query($appModulesQuery);
                 $menuConfig = [];
                 // Fetch Module Icons dynamically
