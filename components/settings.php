@@ -12,7 +12,7 @@ if (!$isIT) {
 // Core Access fetch removed as per request
 
 // Fetch App Modules
-$appQuery = "SELECT * FROM \"prtl_portal_AppModules\" ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, module_column ASC, \"ID\" ASC";
+$appQuery = "SELECT * FROM \"prtl_portal_appmodules\" ORDER BY CASE WHEN module_column = 'Common' THEN 0 ELSE 1 END, module_column ASC, \"ID\" ASC";
 $appStmt = $conn->query($appQuery);
 $appModules = [];
 if ($appStmt) {
@@ -36,7 +36,7 @@ if (!$tableExists) {
 }
 
 // Fetch Available Modules
-$modQuery = "SELECT * FROM \"prtl_portal_Modules\" ORDER BY module_name ASC";
+$modQuery = "SELECT * FROM \"prtl_portal_modules\" ORDER BY module_name ASC";
 $modStmt = $conn->query($modQuery);
 $availableModules = [];
 if ($modStmt) {

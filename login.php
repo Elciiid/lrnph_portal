@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } else {
                 $error = "User not found.";
                 // DEBUG: List available users
-                $dbgSql = "SELECT username, status FROM prtl_lrnph_users LIMIT 5";
+                $dbgSql = "SELECT username, status FROM \"prtl_lrnph_users\" LIMIT 5";
                 $dbgStmt = $conn->query($dbgSql);
                 if ($dbgStmt) {
                     $usersList = [];

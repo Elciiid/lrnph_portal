@@ -3,7 +3,7 @@
 
 // Configuration for dynamic access control (Same as Sidebar)
 // Fetch Core Access from Database
-$coreAccessQuery = "SELECT * FROM \"prtl_portal_CoreAccess\" ORDER BY \"ID\" ASC";
+$coreAccessQuery = "SELECT * FROM \"prtl_portal_coreaccess\" ORDER BY \"ID\" ASC";
 $coreAccessStmt = $conn->query($coreAccessQuery);
 $coreAccessList = [];
 if ($coreAccessStmt) {
@@ -13,13 +13,13 @@ if ($coreAccessStmt) {
 }
 
 // Fetch App Modules from Database
-$appModulesQuery = "SELECT * FROM \"prtl_portal_AppModules\" ORDER BY \"ID\" ASC";
+$appModulesQuery = "SELECT * FROM \"prtl_portal_appmodules\" ORDER BY \"ID\" ASC";
 $appModulesStmt = $conn->query($appModulesQuery);
 $menuConfig = [];
 
 // Fetch Module Icons dynamically
 $iconMap = [];
-$modIconsQuery = "SELECT module_name, module_icon FROM \"prtl_portal_Modules\"";
+$modIconsQuery = "SELECT module_name, module_icon FROM \"prtl_portal_modules\"";
 $modIconsStmt = $conn->query($modIconsQuery);
 if ($modIconsStmt) {
     while ($mRow = $modIconsStmt->fetch(PDO::FETCH_ASSOC)) {
