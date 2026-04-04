@@ -887,8 +887,8 @@ if ($annStmt) {
                 });
             }
 
-            let sunGroup; // Group for beams
-            let sunParticles; // Bokeh/Dust
+            let sunGroup, nightGroup; // Groups for Sun/Moon
+            let sunParticles, starParticles; // Background particles
 
             function createSun() {
                 sunGroup = new THREE.Group();
@@ -1015,6 +1015,117 @@ if ($annStmt) {
                 scene.add(sunParticles);
             }
 
+            function createNight() {
+                nightGroup = new THREE.Group();
+                nightGroup.position.set(2, 8, -6); // Position moon at top right
+                scene.add(nightGroup);
+
+                // 1. Texture Helpers
+                function createMoonTexture() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Main Moon Circle
+                    ctx.beginPath();
+                    ctx.arc(64, 64, 50, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fdfdfd';
+                    ctx.fill();
+                    
+                    // Shadow to create Crescent (mask out part)
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.beginPath();
+                    ctx.arc(84, 54, 45, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalCompositeOperation = 'source-over';
+
+                    // Glow/Aura around crescent
+                    const shadowCanvas = document.createElement('canvas');
+                    shadowCanvas.width = 128;
+                    shadowCanvas.height = 128;
+                    const sCtx = shadowCanvas.getContext('2d');
+                    const grd = sCtx.createRadialGradient(64, 64, 10, 64, 64, 64);
+                    grd.addColorStop(0, 'rgba(150, 200, 255, 0.4)');
+                    grd.addColorStop(1, 'rgba(150, 200, 255, 0)');
+                    sCtx.fillStyle = grd;
+                    sCtx.fillRect(0, 0, 128, 128);
+                    
+                    return new THREE.CanvasTexture(canvas);
+                }
+
+                function createStarTexture() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 32;
+                    canvas.height = 32;
+                    const ctx = canvas.getContext('2d');
+                    const grd = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+                    grd.addColorStop(0, 'white');
+                    grd.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+                    grd.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grd;
+                    ctx.fillRect(0, 0, 32, 32);
+                    return new THREE.CanvasTexture(canvas);
+                }
+
+                // 2. Crescent Moon Sprite
+                const moonMat = new THREE.SpriteMaterial({
+                    map: createMoonTexture(),
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+                const moon = new THREE.Sprite(moonMat);
+                moon.scale.set(10, 10, 1);
+                nightGroup.add(moon);
+
+                // 3. Moon Glow Aura
+                const glowMat = new THREE.SpriteMaterial({
+                    map: new THREE.CanvasTexture((() => {
+                        const c = document.createElement('canvas');
+                        c.width = 128; c.height = 128;
+                        const ctx = c.getContext('2d');
+                        const grd = ctx.createRadialGradient(64,64,0, 64,64,64);
+                        grd.addColorStop(0, 'rgba(100, 150, 255, 0.2)');
+                        grd.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = grd; ctx.fillRect(0,0,128,128);
+                        return c;
+                    })()),
+                    transparent: true,
+                    blending: THREE.AdditiveBlending
+                });
+                const glow = new THREE.Sprite(glowMat);
+                glow.scale.set(25, 25, 1);
+                nightGroup.add(glow);
+
+                // 4. Star Field
+                const starCount = 300;
+                const starGeo = new THREE.BufferGeometry();
+                const starPos = [];
+                const starSizes = [];
+
+                for (let i = 0; i < starCount; i++) {
+                    starPos.push((Math.random() - 0.5) * 50);
+                    starPos.push((Math.random() - 0.5) * 30);
+                    starPos.push((Math.random() - 0.5) * 10 - 5);
+                    starSizes.push(Math.random() * 0.4 + 0.1);
+                }
+
+                starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+                const starMat = new THREE.PointsMaterial({
+                    color: 0xffffff,
+                    map: createStarTexture(),
+                    size: 0.3,
+                    transparent: true,
+                    opacity: 0.8,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+
+                starParticles = new THREE.Points(starGeo, starMat);
+                scene.add(starParticles);
+            }
+
             let lastWeatherCode = null;
 
             // Weather Fetcher
@@ -1091,6 +1202,27 @@ if ($annStmt) {
                     sunParticles = null;
                 }
 
+                if (nightGroup) {
+                    scene.remove(nightGroup);
+                    nightGroup.children.forEach(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (child.material.map) child.material.map.dispose();
+                            child.material.dispose();
+                        }
+                    });
+                    nightGroup = null;
+                }
+                if (starParticles) {
+                    scene.remove(starParticles);
+                    if (starParticles.geometry) starParticles.geometry.dispose();
+                    if (starParticles.material) {
+                        if (starParticles.material.map) starParticles.material.map.dispose();
+                        starParticles.material.dispose();
+                    }
+                    starParticles = null;
+                }
+
                 // Determine Weather Label
                 let weatherText = temp !== '--' ? `${Math.round(temp)}°C` : '--°C';
                 let weatherIcon = isDay ? "fa-cloud-sun" : "fa-cloud-moon";
@@ -1127,13 +1259,13 @@ if ($annStmt) {
                         createSun(); // God Rays
                         currentWeather = 'sunny';
                     } else {
-                        createClearSky();
+                        createNight(); // Moon & Stars
                         currentWeather = 'clear';
                     }
                 }
                 // Cloud/Fog: 2, 3, 45, 48
                 else if ([2, 3, 45, 48].includes(code)) {
-                    createClouds();
+                    createClouds(isDay);
                     currentWeather = 'cloudy';
                 }
                 // Clear Sky (0) and Default: No Effect
@@ -1210,11 +1342,15 @@ if ($annStmt) {
                 scene.add(particleSystem);
             }
 
-            function createClouds() {
+            function createClouds(isDay) {
                 const count = isLowPower ? 50 : 200;
                 const geometry = new THREE.BufferGeometry();
                 const positions = [];
                 // const sizes = []; // Uniform size for now
+
+                // Colors for day vs night
+                const cloudColor = isDay ? 0xffffff : 0x223355; // White vs Midnight Blue
+                const cloudOpacity = isDay ? 0.7 : 0.4;
 
                 // Create soft cloud puff texture
                 const canvas = document.createElement('canvas');
@@ -1256,9 +1392,9 @@ if ($annStmt) {
                 const material = new THREE.PointsMaterial({
                     size: 6, // Very large puffs
                     map: texture,
-                    color: 0xffffff, // Pure white
+                    color: cloudColor, 
                     transparent: true,
-                    opacity: 0.7, // Slightly more opaque
+                    opacity: cloudOpacity, 
                     blending: THREE.NormalBlending, // Normal blessing for opacity layering (foggy)
                     depthWrite: false
                 });
@@ -1306,6 +1442,16 @@ if ($annStmt) {
                         }
                         sunParticles.geometry.attributes.position.needsUpdate = true;
                     }
+                if (nightGroup) {
+                    // Subtle moon floating
+                    nightGroup.position.y = 8 + Math.sin(time * 0.5) * 0.2;
+                    nightGroup.position.x = 2 + Math.cos(time * 0.5) * 0.1;
+                }
+                if (starParticles) {
+                    // Gentle twinkling (via scaling or opacity if we had a custom shader, 
+                    // but simple rotation for "parallax" feel)
+                    starParticles.rotation.z += 0.001;
+                    starParticles.rotation.y += 0.0005;
                 }
 
                 if (particleSystem) {
