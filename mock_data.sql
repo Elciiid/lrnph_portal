@@ -74,3 +74,53 @@ INSERT INTO prtl_portal_user_access (username, perm_key, granted_by) VALUES
 ('admin', 'user_management', 'system'),
 ('admin', 'settings', 'system')
 ON CONFLICT DO NOTHING;
+
+-- 8. Mock Meeting Categories
+INSERT INTO "prtl_AP_Categories" (category_name) VALUES 
+('Internal Sync'),
+('Client Meeting'),
+('Training Workshop');
+
+-- 9. Mock Portal Modules & Core Access
+INSERT INTO prtl_portal_Modules (module_name, module_icon) VALUES
+('Analytics', 'fa-solid fa-chart-line'),
+('Communication', 'fa-solid fa-comments'),
+('Human Resources', 'fa-solid fa-user-group');
+
+INSERT INTO prtl_portal_AppModules (module_column, app_name, perm_key, app_url, added_by) VALUES
+('col1', 'ChatNow', 'chatnow', '/chatnow', 'system'),
+('col2', 'E-Meals', 'emeals', '/emeals', 'system');
+
+INSERT INTO prtl_portal_CoreAccess (access_name, perm_key, description, added_by) VALUES
+('Admin Dashboard', 'dashboard', 'Access to main analytics', 'system'),
+('User Management', 'user_management', 'Manage employees and access', 'system');
+
+-- 10. Mock Conversations & Messages (ChatNow History)
+INSERT INTO "prtl_Conversations" (id, name, created_by) VALUES 
+(1, 'Project Alpha Sync', 'admin');
+
+-- Add participants: Admin and Staff
+INSERT INTO "prtl_ConversationParticipants" (conversation_id, participant_name, participant_bio) VALUES 
+(1, 'admin', 'System Administrator'),
+(1, 'staff', 'HR Manager');
+
+-- Add historical messages between Admin and Staff
+INSERT INTO "prtl_Messages" (conversation_id, sender, receiver, message) VALUES 
+(1, 'staff', 'admin', 'Hi Admin, have you completed the server migration?'),
+(1, 'admin', 'staff', 'Yes! The portal is now running on Vercel and Supabase.'),
+(1, 'staff', 'admin', 'Awesome, everything looks so much faster now. Thank you!');
+
+-- 11. Mock User Notes (Personal Notes/To-Do)
+INSERT INTO "prtl_UserNotes" (username, note) VALUES 
+('admin', 'Verify Vercel environment variables for production.'),
+('admin', 'Schedule review meeting for Q4 performance.');
+
+-- 12. Mock Call Signals (Missed/Ended Calls History)
+INSERT INTO "prtl_CallSignals" (caller_name, receiver_name, status) VALUES 
+('staff', 'admin', 'ended'),
+('admin', 'staff', 'missed');
+
+-- 13. Mock Story Views (Assuming you have a Stories feature)
+INSERT INTO "prtl_StoryViews" (story_id, viewer_name, reaction) VALUES 
+(101, 'staff', 'like'),
+(101, 'admin', 'heart');

@@ -5,7 +5,13 @@
         { "src": "assets/**", "use": "@vercel/static" },
         { "src": "*.css", "use": "@vercel/static" },
         { "src": "*.html", "use": "@vercel/static" },
-        { "src": "**/*.php", "use": "vercel-php@0.7.2" }
+        { 
+            "src": "**/*.php", 
+            "use": "vercel-php@0.7.2",
+            "config": {
+                "includeFiles": ["includes/**", "components/**", "utils/**", "actions/**"]
+            }
+        }
     ],
     "routes": [
         { "src": "/assets/(.*)", "dest": "/assets/$1" },
