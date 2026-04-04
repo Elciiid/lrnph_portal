@@ -5,8 +5,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # Database configuration
-includes/db.php
-
 # IDEs and editors
 .vscode/
 .idea/
