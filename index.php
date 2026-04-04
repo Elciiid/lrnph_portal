@@ -328,6 +328,14 @@ if ($annStmt) {
                                     class="absolute top-9 right-0 bg-gray-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/set:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-tighter shadow-xl">Customize
                                     Portal</span>
                             </button>
+                            <div class="w-px h-2.5 bg-current opacity-20"></div>
+                            <a href="<?php echo $isLoggedIn ? '/admin.php' : '/login.php'; ?>"
+                                class="pill-btn w-7 h-7 flex items-center justify-center rounded-full transition-all group/login relative hover:bg-white/20"
+                                title="Core Access">
+                                <i class="fa-solid <?php echo $isLoggedIn ? 'fa-shield-halved' : 'fa-right-to-bracket'; ?> text-[10px]"></i>
+                                <span
+                                    class="absolute top-9 right-0 bg-gray-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/login:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-tighter shadow-xl">Core Access</span>
+                            </a>
                         </div>
                         <div class="flex-1 max-w-2xl pr-20">
                             <span id="weatherStatusPill"
@@ -1018,27 +1026,30 @@ if ($annStmt) {
                     if (data && data.current_weather) {
                         const code = data.current_weather.weathercode;
                         const temp = data.current_weather.temperature;
-                        console.log("Weather fetched for Mabalacat:", code, temp);
+                        const isDay = data.current_weather.is_day;
+                        const statusKey = code + '-' + isDay;
+                        console.log("Weather fetched for Mabalacat:", code, temp, "isDay:", isDay);
 
                         // Self-refresh portal if weather changes after initial load
-                        if (lastWeatherCode !== null && lastWeatherCode !== code) {
-                            console.log("Weather changed from " + lastWeatherCode + " to " + code + ". Refreshing portal...");
+                        if (lastWeatherCode !== null && lastWeatherCode !== statusKey) {
+                            console.log("Weather/Time changed. Refreshing portal...");
                             window.location.reload();
                             return;
                         }
 
-                        lastWeatherCode = code;
-                        applyWeatherEffect(code, temp);
+                        lastWeatherCode = statusKey;
+                        applyWeatherEffect(code, temp, isDay);
                     } else {
                         throw new Error("Invalid weather data");
                     }
                 } catch (e) {
-                    console.error("Weather fetch failed, defaulting to clear", e);
-                    applyWeatherEffect(0, '--'); // Default to clear
+                    console.error("Weather fetch failed, defaulting back", e);
+                    const h = new Date().getHours();
+                    applyWeatherEffect(0, '--', (h >= 6 && h < 18) ? 1 : 0);
                 }
             }
 
-            function applyWeatherEffect(code, temp) {
+            function applyWeatherEffect(code, temp, isDay) {
                 // Clear existing
                 if (particleSystem) {
                     scene.remove(particleSystem);
@@ -1082,12 +1093,12 @@ if ($annStmt) {
 
                 // Determine Weather Label
                 let weatherText = temp !== '--' ? `${Math.round(temp)}°C` : '--°C';
-                let weatherIcon = "fa-cloud-sun";
+                let weatherIcon = isDay ? "fa-cloud-sun" : "fa-cloud-moon";
 
                 if ([95, 96, 99].includes(code)) { weatherIcon = "fa-bolt-lightning"; }
                 else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) { weatherIcon = "fa-cloud-rain"; }
                 else if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) { weatherIcon = "fa-snowflake"; }
-                else if (code === 1 || code === 0) { weatherIcon = "fa-sun"; }
+                else if (code === 1 || code === 0) { weatherIcon = isDay ? "fa-sun" : "fa-moon"; }
                 else if ([2, 3, 45, 48].includes(code)) { weatherIcon = "fa-cloud"; }
 
                 const pill = document.getElementById("weatherStatusPill");
@@ -1111,10 +1122,14 @@ if ($annStmt) {
                     currentWeather = 'snow';
                 }
                 // Sunny/Mainly Clear (Code 0 & 1 for Sun Rays) 
-                // Enable "God Rays" for both Clear Sky (0) and Mainly Clear (1)
                 else if (code === 1 || code === 0) {
-                    createSun(); // God Rays
-                    currentWeather = 'sunny';
+                    if (isDay) {
+                        createSun(); // God Rays
+                        currentWeather = 'sunny';
+                    } else {
+                        createClearSky();
+                        currentWeather = 'clear';
+                    }
                 }
                 // Cloud/Fog: 2, 3, 45, 48
                 else if ([2, 3, 45, 48].includes(code)) {
