@@ -802,7 +802,7 @@ if (isset($conn)) {
                 if (select) {
                     const opt = document.createElement('option');
                     opt.disabled = true;
-                    opt.textContent = \"(Failed to load categories)\";
+                    opt.textContent = "(Failed to load categories)";
                     select.prepend(opt);
                 }
             });
