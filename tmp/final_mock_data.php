@@ -82,10 +82,9 @@ try {
         (1, 'Staff User', 'heart')
     ON CONFLICT DO NOTHING");
 
-    // 5. User Notes
-    $conn->exec("INSERT INTO \"prtl_UserNotes\" (username, note_text) VALUES 
-        ('admin', 'Finalize the Vercel deployment by EOD.'),
-        ('admin', 'Review the Supabase connection pooler settings.')
+    // 5. User Notes (One note per user)
+    $conn->exec("INSERT INTO \"prtl_UserNotes\" (username, note_text, updated_at) VALUES 
+        ('admin', 'Verify environment variables and schedule review meetings.', CURRENT_TIMESTAMP)
     ON CONFLICT (username) DO UPDATE SET note_text = EXCLUDED.note_text, updated_at = CURRENT_TIMESTAMP");
 
     // 6. Modules & AppModules (Ensure they exist)

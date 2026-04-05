@@ -111,10 +111,9 @@ INSERT INTO "prtl_Messages" (conversation_id, sender, receiver, message) VALUES
 (1, 'admin', 'staff', 'Yes! The portal is now running on Vercel and Supabase.'),
 (1, 'staff', 'admin', 'Awesome, everything looks so much faster now. Thank you!');
 
--- 11. Mock User Notes (Personal Notes / Stories)
+-- 11. Mock User Notes (One per user)
 INSERT INTO "prtl_UserNotes" (username, note_text, updated_at) VALUES 
-('admin', 'Verify Vercel environment variables for production.', CURRENT_TIMESTAMP),
-('admin', 'Schedule review meeting for Q4 performance.', CURRENT_TIMESTAMP)
+('admin', 'Verify environment variables and schedule review meetings.', CURRENT_TIMESTAMP)
 ON CONFLICT (username) DO UPDATE SET note_text = EXCLUDED.note_text, updated_at = CURRENT_TIMESTAMP;
 
 -- 12. Mock Call Signals (Missed/Ended Calls History)
