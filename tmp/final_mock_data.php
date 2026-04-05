@@ -6,7 +6,6 @@ try {
 
     // 1. Alter UserNotes (Rename Columns and Add Unique)
     try {
-        // Check if note column exists before renaming
         $conn->exec("ALTER TABLE \"prtl_UserNotes\" RENAME COLUMN note TO note_text");
         echo "Renamed note to note_text in prtl_UserNotes.\n";
     } catch (Exception $e) {}
@@ -36,13 +35,16 @@ try {
 
     echo "Inserting Mock Data...\n";
 
-    // 1. Categories
+    // 1. Categories (Reset and Re-populate)
+    $conn->exec("DELETE FROM \"prtl_AP_Categories\"");
     $conn->exec("INSERT INTO \"prtl_AP_Categories\" (category_name) VALUES 
         ('Management Meeting'),
         ('Shift Handover'),
         ('Production Planning'),
         ('Quality Audit'),
-        ('Training Session')
+        ('Training Session'),
+        ('Tech Sync'),
+        ('Strategy Review')
     ON CONFLICT DO NOTHING");
 
     // 2. Call Signals
@@ -77,9 +79,9 @@ try {
     }
 
     // 4. Story Views
-    $conn->exec("INSERT INTO \"prtl_StoryViews\" (story_id, viewer_name, reaction) VALUES 
-        (1, 'Admin User', 'like'),
-        (1, 'Staff User', 'heart')
+    $conn->exec("INSERT INTO \"prtl_StoryViews\" (story_id, story_owner_name, viewer_name, reaction) VALUES 
+        (1, 'Admin User', 'Admin User', 'like'),
+        (1, 'Staff User', 'Staff User', 'heart')
     ON CONFLICT DO NOTHING");
 
     // 5. User Notes (One note per user)

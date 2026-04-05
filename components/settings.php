@@ -266,7 +266,7 @@ if (empty($availableModules)) {
                     <form action="actions/manage_modules.php" method="POST"
                         onsubmit="return confirm('Delete this module?');">
                         <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="id" value="<?php echo $mod['ID']; ?>">
+                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($mod['ID'] ?? $mod['id'] ?? ''); ?>">
                         <button type="submit" class="text-gray-400 hover:text-red-500 p-2 transition-colors">
                             <i class="fa-solid fa-trash text-xs"></i>
                         </button>

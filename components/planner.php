@@ -777,17 +777,33 @@ if (isset($conn)) {
     document.addEventListener('DOMContentLoaded', () => {
         // Load Categories
         fetch('actions/get_categories.php')
-            .then(res => res.json())
+            .then(res => res.ok ? res.json() : Promise.reject('API Error'))
             .then(data => {
                 const select = document.getElementById('categorySelect');
                 if (!select) return;
-                if (!data.error) {
+                
+                // Clear existing dynamic options (except Select and Custom)
+                const customOpt = select.querySelector('option[value=\"custom\"]');
+                
+                if (Array.isArray(data)) {
                     data.forEach(cat => {
                         const opt = document.createElement('option');
                         opt.value = cat.id;
                         opt.textContent = cat.name;
-                        select.insertBefore(opt, select.lastElementChild);
+                        cat.id && select.insertBefore(opt, customOpt || select.lastElementChild);
                     });
+                } else if (data.error) {
+                    console.error('Category Load Error:', data.error);
+                }
+            })
+            .catch(err => {
+                console.error('Categories Fetch Failed:', err);
+                const select = document.getElementById('categorySelect');
+                if (select) {
+                    const opt = document.createElement('option');
+                    opt.disabled = true;
+                    opt.textContent = \"(Failed to load categories)\";
+                    select.prepend(opt);
                 }
             });
 
