@@ -21,19 +21,7 @@ if ($appStmt) {
     }
 }
 
-// Ensure prtl_portal_Modules table exists handling missing schema
-$checkTable = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'prtl_portal_Modules'";
-$checkStmt = $conn->query($checkTable);
-$tableExists = ($checkStmt && $checkStmt->fetchColumn() > 0);
-
-if (!$tableExists) {
-    $createTable = "CREATE TABLE prtl_portal_Modules (
-        \"ID\" SERIAL PRIMARY KEY,
-        module_name VARCHAR(255) NOT NULL,
-        module_icon VARCHAR(255) DEFAULT 'fa-solid fa-box'
-    )";
-    $conn->exec($createTable);
-}
+// Table existence check removed as schema is managed globally
 
 // Fetch Available Modules
 $modQuery = "SELECT * FROM \"prtl_portal_modules\" ORDER BY module_name ASC";

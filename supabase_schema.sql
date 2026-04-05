@@ -142,15 +142,16 @@ CREATE TABLE IF NOT EXISTS "prtl_UserPresence" (
 
 CREATE TABLE IF NOT EXISTS "prtl_UserNotes" (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    note TEXT,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    note_text TEXT,
     image_path TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS "prtl_StoryViews" (
     id SERIAL PRIMARY KEY,
     story_id INT,
+    story_owner_name VARCHAR(255),
     viewer_name VARCHAR(255),
     reaction VARCHAR(50),
     last_viewed_at TIMESTAMPTZ DEFAULT NOW()
@@ -159,6 +160,7 @@ CREATE TABLE IF NOT EXISTS "prtl_StoryViews" (
 CREATE TABLE IF NOT EXISTS "prtl_Conversations" (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255),
+    photo_path TEXT,
     created_by VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -96,8 +96,9 @@ INSERT INTO prtl_portal_CoreAccess (access_name, perm_key, description, added_by
 ('User Management', 'user_management', 'Manage employees and access', 'system');
 
 -- 10. Mock Conversations & Messages (ChatNow History)
-INSERT INTO "prtl_Conversations" (id, name, created_by) VALUES 
-(1, 'Project Alpha Sync', 'admin');
+INSERT INTO "prtl_Conversations" (id, name, created_by, photo_path) VALUES 
+(1, 'Project Alpha Sync', 'admin', 'https://images.unsplash.com/photo-1522071820081-009f0129c71c')
+ON CONFLICT (id) DO UPDATE SET photo_path = EXCLUDED.photo_path;
 
 -- Add participants: Admin and Staff
 INSERT INTO "prtl_ConversationParticipants" (conversation_id, participant_name, participant_bio) VALUES 
@@ -110,20 +111,21 @@ INSERT INTO "prtl_Messages" (conversation_id, sender, receiver, message) VALUES
 (1, 'admin', 'staff', 'Yes! The portal is now running on Vercel and Supabase.'),
 (1, 'staff', 'admin', 'Awesome, everything looks so much faster now. Thank you!');
 
--- 11. Mock User Notes (Personal Notes/To-Do)
-INSERT INTO "prtl_UserNotes" (username, note) VALUES 
-('admin', 'Verify Vercel environment variables for production.'),
-('admin', 'Schedule review meeting for Q4 performance.');
+-- 11. Mock User Notes (Personal Notes / Stories)
+INSERT INTO "prtl_UserNotes" (username, note_text, updated_at) VALUES 
+('admin', 'Verify Vercel environment variables for production.', CURRENT_TIMESTAMP),
+('admin', 'Schedule review meeting for Q4 performance.', CURRENT_TIMESTAMP)
+ON CONFLICT (username) DO UPDATE SET note_text = EXCLUDED.note_text, updated_at = CURRENT_TIMESTAMP;
 
 -- 12. Mock Call Signals (Missed/Ended Calls History)
 INSERT INTO "prtl_CallSignals" (caller_name, receiver_name, status) VALUES 
 ('staff', 'admin', 'ended'),
 ('admin', 'staff', 'missed');
 
--- 13. Mock Story Views (Assuming you have a Stories feature)
-INSERT INTO "prtl_StoryViews" (story_id, viewer_name, reaction) VALUES 
-(101, 'staff', 'like'),
-(101, 'admin', 'heart');
+-- 13. Mock Story Views
+INSERT INTO "prtl_StoryViews" (story_id, story_owner_name, viewer_name, reaction) VALUES 
+(101, 'admin', 'staff', 'like'),
+(101, 'admin', 'admin', 'heart');
 
 -- 14. Mock Venues
 INSERT INTO "prtl_AP_Venues" (venue_name, is_active) VALUES

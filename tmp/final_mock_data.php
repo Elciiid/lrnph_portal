@@ -2,6 +2,38 @@
 require_once __DIR__ . '/../includes/db.php';
 
 try {
+    echo "Updating Schema (Migrations)...\n";
+
+    // 1. Alter UserNotes (Rename Columns and Add Unique)
+    try {
+        // Check if note column exists before renaming
+        $conn->exec("ALTER TABLE \"prtl_UserNotes\" RENAME COLUMN note TO note_text");
+        echo "Renamed note to note_text in prtl_UserNotes.\n";
+    } catch (Exception $e) {}
+
+    try {
+        $conn->exec("ALTER TABLE \"prtl_UserNotes\" RENAME COLUMN created_at TO updated_at");
+        echo "Renamed created_at to updated_at in prtl_UserNotes.\n";
+    } catch (Exception $e) {}
+
+    try {
+        $conn->exec("ALTER TABLE \"prtl_UserNotes\" ADD UNIQUE (username)");
+        echo "Added UNIQUE constraint to username in prtl_UserNotes.\n";
+    } catch (Exception $e) {}
+
+    // 2. Alter StoryViews
+    try {
+        $conn->exec("ALTER TABLE \"prtl_StoryViews\" ADD COLUMN story_owner_name VARCHAR(255)");
+        echo "Added story_owner_name to prtl_StoryViews.\n";
+    } catch (Exception $e) {}
+
+    // 3. Alter Conversations
+    try {
+        $conn->exec("ALTER TABLE \"prtl_Conversations\" ADD COLUMN photo_path TEXT");
+        echo "Added photo_path to prtl_Conversations.\n";
+    } catch (Exception $e) {}
+
+
     echo "Inserting Mock Data...\n";
 
     // 1. Categories
@@ -51,10 +83,10 @@ try {
     ON CONFLICT DO NOTHING");
 
     // 5. User Notes
-    $conn->exec("INSERT INTO \"prtl_UserNotes\" (username, note) VALUES 
+    $conn->exec("INSERT INTO \"prtl_UserNotes\" (username, note_text) VALUES 
         ('admin', 'Finalize the Vercel deployment by EOD.'),
         ('admin', 'Review the Supabase connection pooler settings.')
-    ON CONFLICT DO NOTHING");
+    ON CONFLICT (username) DO UPDATE SET note_text = EXCLUDED.note_text, updated_at = CURRENT_TIMESTAMP");
 
     // 6. Modules & AppModules (Ensure they exist)
     $conn->exec("INSERT INTO \"prtl_portal_modules\" (module_name, module_icon) VALUES 
