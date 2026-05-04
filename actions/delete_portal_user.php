@@ -25,4 +25,3 @@ if ($stmt->execute(array($userId))) {
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to delete user.']);
 }
-?>

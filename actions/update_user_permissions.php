@@ -44,4 +44,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     header("Location: ../admin.php?page=user_management&success=perms_updated");
     exit();
 }
-?>

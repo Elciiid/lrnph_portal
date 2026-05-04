@@ -55,4 +55,3 @@ if ($stmt) {
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to fetch users.']);
 }
-?>

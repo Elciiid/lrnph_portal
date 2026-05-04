@@ -77,4 +77,3 @@ if ($stmt === false) {
 } else {
     echo json_encode(['success' => true, 'message' => 'Employee added successfully.']);
 }
-?>

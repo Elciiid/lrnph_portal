@@ -84,7 +84,7 @@ if (!function_exists('emeals_link_href')) {
             $scheme = 'https://';
 
         // Hardcoded to production IP for E-Meals server since it's not local
-        $host = '10.2.0.8';
+        $host = getenv('EMEALS_HOST') ?: '10.2.0.8';
         return $scheme . $host . '/emeals/emeals.php?token=' . rawurlencode($token);
     }
 }
@@ -100,7 +100,7 @@ if (!function_exists('emeals_settings_link_href')) {
         if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
             $scheme = 'https://';
 
-        $host = '10.2.0.8';
+        $host = getenv('EMEALS_HOST') ?: '10.2.0.8';
         return $scheme . $host . '/emeals/settings.php?token=' . rawurlencode($token);
     }
 }

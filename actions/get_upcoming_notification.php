@@ -49,4 +49,3 @@ if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 } else {
     echo json_encode(['success' => true, 'has_meeting' => false]);
 }
-?>

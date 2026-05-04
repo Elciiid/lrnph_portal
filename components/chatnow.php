@@ -1503,7 +1503,6 @@ if ($stmtNotes) {
 <script>
     // Default Avatar for JS
     const DEFAULT_AVATAR = `<?= DEFAULT_AVATAR_URL ?>`;
-    const EMP_PHOTO_BASE_URL = `<?= EMP_PHOTO_BASE_URL ?>`;
     const currentGCMembers = <?= json_encode((isset($isGroup) && $isGroup && isset($groupMembers)) ? array_column($groupMembers, 'participant_name') : []) ?>;
     const myName = <?= json_encode($fullname) ?>;
 
@@ -1615,7 +1614,7 @@ if ($stmtNotes) {
                         div.className = 'flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer rounded-xl border border-transparent hover:border-pink-100 transition-all';
                         div.innerHTML = `
                             <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                                <img src="${u.bio ? EMP_PHOTO_BASE_URL + u.bio + '.jpg' : DEFAULT_AVATAR}" class="w-full h-full object-cover" onerror="handleAvatarError(this)">
+                                <img src="${DEFAULT_AVATAR}" class="w-full h-full object-cover" onerror="handleAvatarError(this)">
                             </div>
                             <div class="flex-1">
                                 <div class="text-[14px] font-bold text-gray-800">${u.name}</div>
@@ -1659,7 +1658,7 @@ if ($stmtNotes) {
 
                         const div = document.createElement('div');
                         div.className = 'flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors';
-                        const photoUrl = u.bio ? `${EMP_PHOTO_BASE_URL}${u.bio}.jpg` : DEFAULT_AVATAR;
+                        const photoUrl = DEFAULT_AVATAR;
 
                         div.innerHTML = `
                              <div class="w-8 h-8 rounded-full bg-gray-200 border border-gray-100 shrink-0 overflow-hidden">
@@ -1699,7 +1698,7 @@ if ($stmtNotes) {
         selectedGroupMembers.forEach(u => {
             const tag = document.createElement('span');
             tag.className = 'inline-flex items-center pl-1 pr-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-700 gap-2 border border-pink-200';
-            const photoUrl = u.bio ? `${EMP_PHOTO_BASE_URL}${u.bio}.jpg` : DEFAULT_AVATAR;
+            const photoUrl = DEFAULT_AVATAR;
             tag.innerHTML = `
                 <div class="w-5 h-5 rounded-full bg-pink-200 overflow-hidden shrink-0">
                     <img src="${photoUrl}" class="w-full h-full object-cover" onerror="handleAvatarError(this)">
@@ -1902,7 +1901,7 @@ if ($stmtNotes) {
                         filtered.forEach(u => {
                             const div = document.createElement('div');
                             div.className = 'flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0';
-                            const photoUrl = u.bio ? `${EMP_PHOTO_BASE_URL}${u.bio}.jpg` : DEFAULT_AVATAR;
+                            const photoUrl = DEFAULT_AVATAR;
                             div.innerHTML = `
                                 <img src="${photoUrl}" class="w-8 h-8 rounded-full object-cover border border-gray-100" onerror="handleAvatarError(this)">
                                 <div class="flex-1">
@@ -2237,7 +2236,7 @@ if ($stmtNotes) {
 
                 if (data.type === 'incoming') {
                     if (!isModalOpen) {
-                        const photo = data.eid ? `${EMP_PHOTO_BASE_URL}${data.eid}.jpg` : DEFAULT_AVATAR;
+                        const photo = DEFAULT_AVATAR;
                         showCallModal('incoming', data.caller, photo, data.call_id);
                     }
                 } else if (data.type === 'outgoing') {

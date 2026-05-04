@@ -47,4 +47,3 @@ if (isset($conn) && $conn) {
 } else {
     echo json_encode(['error' => 'Database connection failed']);
 }
-?>

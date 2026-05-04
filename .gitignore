@@ -17,3 +17,6 @@ Thumbs.db
 
 # Uploads directory (if it contains user-generated content)
 uploads/
+
+# Environment Variables
+.env

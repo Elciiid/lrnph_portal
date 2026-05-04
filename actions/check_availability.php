@@ -79,4 +79,3 @@ if (isset($conn)) {
 } else {
     echo json_encode(['error' => 'Database connection failed']);
 }
-?>

@@ -27,4 +27,3 @@ if (isset($_GET['username']) && isset($_GET['status'])) {
     }
     exit();
 }
-?>

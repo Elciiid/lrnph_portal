@@ -18,4 +18,3 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
 
 header("Location: ../admin.php?page=announcements");
 exit();
-?>
