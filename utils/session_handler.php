@@ -35,4 +35,3 @@ class PdoSessionHandler implements SessionHandlerInterface
         return $stmt->rowCount();
     }
 }
-?>

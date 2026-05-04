@@ -63,4 +63,3 @@ try {
         <p>Database connection failed. Please try again later.</p>
     </div>");
 }
-?>

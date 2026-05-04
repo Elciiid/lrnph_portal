@@ -1,5 +1,8 @@
 <?php
 // Standalone API for ChatNow (Admin Portal Version)
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/photo_helper.php';
+
 // Ensure authenticated
 if (!isset($_SESSION['username'])) {
     http_response_code(401);
@@ -12,18 +15,13 @@ date_default_timezone_set('Asia/Manila');
 // helper for photos
 function resolve_photo_url($employeeId)
 {
-    if (empty($employeeId)) {
-        return "data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%2394a3b8%22 style=%22background:%23e2e8f0; border-radius: 50%;%22%3e%3cpath d=%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22/%3e%3c/svg%3e";
-    }
-    return 'http://10.2.0.8/lrnph/emp_photos/' . $employeeId . '.jpg';
+    return getEmployeePhotoUrl($employeeId);
 }
 
 $username = $_SESSION['username'];
 $employeeId = $_SESSION['employee_id'] ?? '';
 $fullname = preg_replace('/\s+/', ' ', trim($_SESSION['fullname'] ?? $username));
 
-// Database Connection to LRNPH_E (Supabase PostgreSQL)
-require_once __DIR__ . '/../includes/db.php';
 // $conn is already available from db.php
 
 // Helpers
@@ -665,4 +663,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         json_out(['ok' => false, 'error' => 'Invalid conversation parameters']);
     }
 }
-?>
